@@ -1,7 +1,7 @@
 .idea/
 
 # My Utils
-
+utils/
 # Temp MS Office files
 ~$*.xlsm
 
