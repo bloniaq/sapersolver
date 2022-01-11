@@ -6,6 +6,10 @@ name = "pypi"
 [packages]
 pytest = "*"
 sapersolver-pkg-bloniaq = {editable = true, path = "."}
+pyautogui = "*"
+pillow = "*"
+importlib-metadata = "*"
+typing-extensions = "*"
 
 [dev-packages]
 
