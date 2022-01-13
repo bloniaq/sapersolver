@@ -1,7 +1,8 @@
 import pyautogui as pag
-import logging as lg
+import logging
 
-lg.basicConfig(level=lg.INFO)
+
+logg = logging.getLogger('solver.c.reader')
 
 
 class Reader:
@@ -11,7 +12,7 @@ class Reader:
 
     def _find_region(self):
         topleftcorner = pag.locateOnScreen('images/topleftcorner.png')
-        lg.info(f"topleftcorner results: {topleftcorner}")
+        logg.debug(f"topleftcorner results: {topleftcorner}")
         if topleftcorner is not None:
             self.left = (topleftcorner[0] + topleftcorner[2] + 5)
             self.top = topleftcorner[1] + topleftcorner[3] + 5

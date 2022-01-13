@@ -1,20 +1,22 @@
 from solver.reader import Reader
 from solver.model import Board
-import logging as lg
-
-lg.basicConfig(level=lg.INFO)
+import logging
 
 
-class Solver:
+logg = logging.getLogger('solver.c')
+
+
+class Controller:
 
     def __init__(self):
         reader = Reader()
         if reader.region is not None:
+
             self.model = Board(reader.left, reader.top)
-            lg.info('app initialized successfully')
-            lg.info(f"board top left corner: X:{reader.left} Y:{reader.top}")
+            logg.info('app initialized successfully')
+            logg.debug(f"board top left corner: X:{reader.left} Y:{reader.top}")
         else:
-            lg.error('Board not found')
+            logg.error('Board not found')
 
     def solve(self):
         if self.get_game_region():

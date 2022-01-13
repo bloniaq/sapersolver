@@ -1,7 +1,7 @@
-import logging as lg
+import logging
 
 
-lg.basicConfig(level=lg.INFO)
+logg = logging.getLogger('solver.c.model')
 
 
 class Board:
@@ -12,4 +12,3 @@ class Board:
     def __init__(self, top, left) -> None:
         self.columns = self.COLUMNS
         self.rows = self.ROWS
-
