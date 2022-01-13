@@ -4,7 +4,12 @@ import logging as lg
 lg.basicConfig(level=lg.INFO)
 
 
-class Model:
+class Board:
+
+    COLUMNS = 30
+    ROWS = 16
 
     def __init__(self, top, left) -> None:
-        pass
+        self.columns = self.COLUMNS
+        self.rows = self.ROWS
+

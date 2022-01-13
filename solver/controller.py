@@ -1,5 +1,5 @@
 from solver.reader import Reader
-from solver.model import Model
+from solver.model import Board
 import logging as lg
 
 lg.basicConfig(level=lg.INFO)
@@ -10,7 +10,7 @@ class Solver:
     def __init__(self):
         reader = Reader()
         if reader.region is not None:
-            model = Model()
+            self.model = Board(reader.left, reader.top)
             lg.info('app initialized successfully')
             lg.info(f"board top left corner: X:{reader.left} Y:{reader.top}")
         else:
