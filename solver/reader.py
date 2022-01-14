@@ -40,11 +40,15 @@ class Reader:
 
     def update_fields(self, fields):
         self.mouse_clean_pos()
+        changes_flag = False
         for row in fields:
             for field in row:
                 state = self._recognize_field(field)
-                logg.debug(f'field c{field.col} r{field.row} state: {state}')
-                field.state = state
+                if field.state != state:
+                    field.state = state
+                    logg.debug(f'field c{field.col} r{field.row} state: {state}')
+                    changes_flag = True
+        return changes_flag
 
     def _recognize_field(self, field):
         if field.state != 'c' and field.state != 'x':
@@ -60,4 +64,7 @@ class Reader:
         return 'x'
 
     def mouse_clean_pos(self):
-        pag.moveTo(0, 0)
+        pag.moveTo(10, 10)
+
+    def uncover(self, fields_to_uncover):
+        pass

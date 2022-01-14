@@ -28,8 +28,12 @@ class Controller:
     def solve(self):
         i_know_what_to_do = True
         while i_know_what_to_do:
-            pass
-            i_know_what_to_do = False
+            # potential_mines = self.model.pick_potential_mines()
+            # self.reader.mark_mines(potential_mines)
+            # fields_to_uncover = self.model.get_fields_with_cov_neighbours()
+            self.reader.uncover(fields_to_uncover)
+            i_know_what_to_do = self._update_board()
+        logg.warning("I don't know what to do")
 
     def mine_left(self):
         pass
@@ -51,5 +55,6 @@ class Controller:
         logg.debug(f"started game in {field.x} x, {field.y} y")
 
     def _update_board(self):
-        self.reader.update_fields(self.model.fields)
+        changes_flag = self.reader.update_fields(self.model.fields)
         self.model.print_board()
+        return changes_flag
