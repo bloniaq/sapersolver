@@ -50,7 +50,7 @@ class Board:
                     for c in range(x - 1 if x > 0 else x, x + 2 if x < len(self.fields[0]) - 1 else x + 1):
                         neighbours.append(self.fields[r][c])
                 field.neighbours = set(neighbours)
-                field.neighbours.remove(self.fields[y][x])
+                field.neighbours.discard(self.fields[y][x])
 
 
 class Field:
