@@ -35,6 +35,45 @@ class Test_Model:
         assert len(basic_model.fields) == basic_model.rows
         assert len(basic_model.fields) * len(basic_model.fields[0]) == basic_model.rows * basic_model.columns
 
+    def test_neighbours_middle(self, basic_model):
+        tested_field = basic_model.fields[4][5]
+        neighbours = tested_field.neighbours
+        assert neighbours
+        assert isinstance(neighbours, set)
+
+        expected_neighbours = {
+            basic_model.fields[3][4],
+            basic_model.fields[3][5],
+            basic_model.fields[3][6],
+            basic_model.fields[4][4],
+            basic_model.fields[4][6],
+            basic_model.fields[5][4],
+            basic_model.fields[5][5],
+            basic_model.fields[5][6]
+        }
+        assert expected_neighbours == neighbours
+
+    def test_neighbours_topleftcorner(self, basic_model):
+        tested_field = basic_model.fields[0][0]
+        neighbours = tested_field.neighbours
+
+        expected_neighbours = {
+            basic_model.fields[0][1],
+            basic_model.fields[1][0],
+            basic_model.fields[1][1]
+        }
+        assert expected_neighbours == neighbours
+
+    def test_neighbours_bottomrightcorner(self, basic_model):
+        tested_field = basic_model.fields[15][29]
+        neighbours = tested_field.neighbours
+
+        expected_neighbours = {
+            basic_model.fields[14][28],
+            basic_model.fields[14][29],
+            basic_model.fields[15][28]
+        }
+        assert expected_neighbours == neighbours
 
 class Test_Field:
 
