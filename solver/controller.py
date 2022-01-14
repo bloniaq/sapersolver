@@ -20,7 +20,7 @@ class Controller:
         else:
             logg.error('Board not found')
             return
-
+        self.model.print_board()
         self._start_game()
         self._update_board()
 

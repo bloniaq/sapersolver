@@ -30,13 +30,29 @@ class Board:
             y += 51
             self.fields.append(row_list)
 
+    def print_board(self):
+        board = ''
+        for row in self.fields:
+            for field in row:
+                board += field.state + ' '
+            board += '\n'
+
+        print(board)
+
+
 
 class Field:
+
+    # STATES:
+    # 'c' = covered
+    # 'e' = empty
+    # 'm' = mine
+    # '1-8' = value
 
     def __init__(self, col: int, row: int, x: int, y: int) -> None:
         self.col = col
         self.row = row
         self.x = x
         self.y = y
-        self.state = 'covered'
+        self.state = 'c'
         self.neighbours = []

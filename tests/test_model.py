@@ -59,5 +59,5 @@ class Test_Field:
         assert basic_field.row is not None
         assert basic_field.x is not None
         assert basic_field.y is not None
-        assert basic_field.state == 'covered'
+        assert basic_field.state == 'c'
         assert basic_field.neighbours == []
