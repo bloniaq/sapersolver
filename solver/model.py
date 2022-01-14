@@ -8,13 +8,14 @@ class Board:
     COLUMNS = 30
     ROWS = 16
 
-    def __init__(self, top, left) -> None:
+    def __init__(self, left, top) -> None:
         self.columns = self.COLUMNS
         self.rows = self.ROWS
-        self._init_fields(top, left)
+        self._init_fields(left, top)
 
-    def _init_fields(self, top, left):
+    def _init_fields(self, left, top):
         self.fields = []
+        logg.debug(f"init fields parameters vals: left: {left}, top: {top}")
 
         x = first_row_x = left + 23
         y = top + 23
@@ -29,16 +30,13 @@ class Board:
             y += 51
             self.fields.append(row_list)
 
-    # def get_field(self):
-    #     pass
-
 
 class Field:
 
     def __init__(self, col: int, row: int, x: int, y: int) -> None:
         self.col = col
         self.row = row
-        self._x = x
-        self._y = y
+        self.x = x
+        self.y = y
         self.state = 'covered'
         self.neighbours = []

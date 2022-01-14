@@ -22,14 +22,14 @@ class Test_Model:
         assert basic_model.columns == 30
         assert basic_model.rows == 16
 
-    # def test_get_field(self, basic_model):
-    #     row = 4
-    #     col = 6
-    #     field = basic_model.get_field(col, row)
-    #     assert field.row == row
-    #     assert field.col == col
-    #     assert field._x == 678
-    #     assert field._y == 576
+    def test_get_field(self, basic_model):
+        row = 3
+        col = 5
+        field = basic_model.fields[row][col]
+        assert field.row == row
+        assert field.col == col
+        assert field.x == 478
+        assert field.y == 576
 
     def test_generate_fields(self, basic_model):
         assert len(basic_model.fields) == basic_model.rows
@@ -57,7 +57,7 @@ class Test_Field:
         assert isinstance(basic_field, Field)
         assert basic_field.col is not None
         assert basic_field.row is not None
-        assert basic_field._x is not None
-        assert basic_field._y is not None
+        assert basic_field.x is not None
+        assert basic_field.y is not None
         assert basic_field.state == 'covered'
         assert basic_field.neighbours == []
