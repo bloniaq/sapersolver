@@ -20,22 +20,16 @@ class Controller:
         else:
             logg.error('Board not found')
             return
-        self.model.print_board()
-        self._start_game()
+
         self._update_board()
+        self._start_game()
+        self.solve()
 
     def solve(self):
-        if self.get_game_region():
-            game = True
-            win = False
-        else:
-            return False
-        while game:
-            # solving
-            if self.mine_left() == 0:
-                win = True
-            game = False
-        return win
+        i_know_what_to_do = True
+        while i_know_what_to_do:
+            pass
+            i_know_what_to_do = False
 
     def mine_left(self):
         pass
@@ -44,6 +38,11 @@ class Controller:
         pass
 
     def _start_game(self):
+        for row in self.model.fields:
+            for field in row:
+                if field != 'c':
+                    return
+
         row = random.randrange(0, self.model.rows)
         col = random.randrange(0, self.model.columns)
         field = self.model.fields[row][col]
@@ -53,3 +52,4 @@ class Controller:
 
     def _update_board(self):
         self.reader.update_fields(self.model.fields)
+        self.model.print_board()

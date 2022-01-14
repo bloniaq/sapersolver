@@ -56,3 +56,11 @@ class Field:
         self.y = y
         self.state = 'c'
         self.neighbours = []
+        self.region = self._get_region()
+
+    def _get_region(self):
+        x = self.x - 20
+        y = self.y - 20
+        width = 40
+        length = 40
+        return (x, y, width, length)

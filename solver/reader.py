@@ -6,6 +6,17 @@ logg = logging.getLogger('solver.c.reader')
 
 
 class Reader:
+    IMAGES = {
+        'm': 'images/mine.png',
+        '1': 'images/one.png',
+        '2': 'images/two.png',
+        '3': 'images/three.png',
+        '4': 'images/four.png',
+        '5': 'images/five.png',
+        '6': 'images/six.png',
+        'c': 'images/covered.png',
+        '_': 'images/empty.png'
+    }
 
     def __init__(self):
         self.region = self._find_region()
@@ -28,9 +39,25 @@ class Reader:
         pag.click(field.x, field.y, button='right')
 
     def update_fields(self, fields):
+        self.mouse_clean_pos()
         for row in fields:
             for field in row:
                 state = self._recognize_field(field)
+                logg.debug(f'field c{field.col} r{field.row} state: {state}')
+                field.state = state
 
     def _recognize_field(self, field):
-        pass
+        if field.state != 'c' and field.state != 'x':
+            return field.state
+        for key in self.IMAGES:
+            result = pag.locateOnScreen(
+                self.IMAGES[key], region=field.region, grayscale=True,
+                confidence=0.8)
+            if result:
+                return key
+            else:
+                continue
+        return 'x'
+
+    def mouse_clean_pos(self):
+        pag.moveTo(0, 0)
