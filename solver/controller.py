@@ -21,7 +21,7 @@ class Controller:
             logg.error('Board not found')
             return
 
-        self._update_board()
+        self.reader.read_whole_board(self.model.fields)
         logg.info("Board updated")
         self._start_game()
         logg.info("Game started")
@@ -36,7 +36,7 @@ class Controller:
             self.reader.mark_mines(potential_mines)
             fields_to_uncover = self.model.get_fields_with_cov_neighbours()
             self.reader.uncover(fields_to_uncover)
-            i_know_what_to_do = self._update_board()
+            i_know_what_to_do = self._update_board(fields_to_uncover)
         logg.warning("I don't know what to do")
 
     def mine_left(self):
@@ -59,8 +59,8 @@ class Controller:
         logg.debug(f"started game in {row} row, {col} col")
         logg.debug(f"started game in {field.x} x, {field.y} y")
 
-    def _update_board(self):
+    def _update_board(self, fields_clicked):
         logg.info("Reading Board")
-        changes_flag = self.reader.update_fields(self.model.fields)
+        changes_flag = self.reader.update_board(fields_clicked)
         self.model.print_board()
         return changes_flag
