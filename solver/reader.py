@@ -38,19 +38,39 @@ class Reader:
     def mark_bomb(self, field):
         pag.click(field.x, field.y, button='right')
 
-    def update_fields(self, fields):
+    def read_whole_board(self, fields):
         self.mouse_clean_pos()
         changes_flag = False
         for row in fields:
             for field in row:
-                state = self._recognize_field(field)
+                state = self.recognize_field(field)
                 if field.state != state:
                     field.state = state
                     logg.debug(f'field c{field.col} r{field.row} state: {state}')
                     changes_flag = True
         return changes_flag
 
-    def _recognize_field(self, field):
+    def update_board(self, fields_to_recognize):
+        changes_flag = False
+        fields_recognized = set()
+        while fields_to_recognize:
+            next_fields_to_reckognized = set()
+            for field in fields_to_recognize:
+                current_state = field.state
+                self.mouse_clean_pos()
+                new_state = self.recognize_field(field)
+                if new_state != current_state:
+                    changes_flag = True
+                    for neighbour in field.neighbours:
+                        if neighbour not in fields_recognized:
+                            fields_recognized.add(neighbour)
+                            next_fields_to_reckognized.add(neighbour)
+
+            fields_to_recognize = next_fields_to_reckognized
+        return changes_flag
+
+
+    def recognize_field(self, field):
         if field.state != 'c' and field.state != 'x':
             return field.state
         for key in self.IMAGES:
@@ -68,3 +88,8 @@ class Reader:
 
     def uncover(self, fields_to_uncover):
         pass
+
+    def gen_field(self, fields_to_reckognized):
+        while True:
+            yield fields_to_reckognized
+
