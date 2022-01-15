@@ -9,6 +9,7 @@ class Board:
     ROWS = 16
 
     def __init__(self, left, top) -> None:
+        self.getneighbours = None
         self.columns = self.COLUMNS
         self.rows = self.ROWS
         self._init_fields(left, top)
@@ -52,43 +53,44 @@ class Board:
                 field.neighbours = set(neighbours)
                 field.neighbours.discard(self.fields[y][x])
 
-    def get_fields_with_cov_neighbours(self):
+    def get_complete_fields_w_cov_neighbours(self):
         fields_to_click = set()
         for row in self.fields:
             for field in row:
                 if field.iscomplete() and field.getcoveredneighbours():
                     fields_to_click.add(field)
-        logg.info(f"fields to uncover: {fields_to_click}")
+        logg.info(f"complete_fields_w_cov_neighbours: {fields_to_click}")
         return fields_to_click
 
-    def mark_potential_mines(self):
-        for row in self.fields:
-            for field in row:
-                if field.isnumber():
-                    self._check_neighbours_equals_number(field)
+    def get_neighbours(self, fields: set):
+        neighbours = set()
+        for field in fields:
+            neighbours.union(field.neighbours)
+        return neighbours
 
+    def pick_number_neighbours(self, fields: set):
+        number_neighbours = set()
+        for field in fields:
+            for neighbour in field.neighbours:
+                if neighbour.isnumber():
+                    number_neighbours.add(neighbour)
+        return number_neighbours
+
+    def get_potential_mines(self):
         potential_mines = set()
         for row in self.fields:
             for field in row:
-                if field.state == 'pm':
-                    potential_mines.add(field)
-        logg.info(f"potential mines: {potential_mines}")
-        return potential_mines
+                if field.isnumber():
+                    potential_mines |= field.point_mines_around()
+        logg.info(f"All potential mines for now: {potential_mines}")
+        their_complete_number_nbrs = set()
+        for mine in potential_mines:
+            for n in mine.neighbours:
+                if n.isnumber() and n.iscomplete():
+                    their_complete_number_nbrs.add(n)
+        logg.info(f"Neighbour numbers of mines: {their_complete_number_nbrs}")
+        return potential_mines, their_complete_number_nbrs
 
-    def _check_neighbours_equals_number(self, field):
-        """
-        Checks if number of all of field covered neighbours is equal to
-        self number minus already marked mines. If so - marks them as
-        potential mines
-        :param field: Field
-        :return:
-        """
-        covered_neighbours = field.getcoveredneighbours()
-        mine_neighbours = field.getmineneighbours()
-        if len(covered_neighbours) == int(field.state) - len(mine_neighbours):
-            for n in covered_neighbours:
-                n.state = 'pm'
-                logg.debug(f"{n} marked as PM because of: {field}")
 
 class Field:
 
@@ -128,7 +130,7 @@ class Field:
             return False
         mine_neighbours = 0
         for n in self.neighbours:
-            if n.state == 'm':
+            if n.state in ('m', 'pm'):
                 mine_neighbours += 1
         if mine_neighbours == int(self.state):
             return True
@@ -138,13 +140,39 @@ class Field:
     def getcoveredneighbours(self):
         covered_neighbours = set()
         for n in self.neighbours:
-            if n.state == '*' or n.state == 'pm':
+            if n.state == '*':
                 covered_neighbours.add(n)
         return covered_neighbours
 
     def getmineneighbours(self):
         mine_neighbours = set()
         for n in self.neighbours:
-            if n.state == 'm':
+            if n.state in ('m', 'pm'):
                 mine_neighbours.add(n)
         return mine_neighbours
+
+    ###
+    # POINTING MINES
+    ###
+
+    def point_mines_around(self):
+        potential_mines = set()
+        # methods = (
+        #     self._check_if_state_equals_cov_neighbours
+        # )
+        # for method in methods:
+        #     method()
+
+        potential_mines = self._check_if_state_equals_cov_neighbours(
+            potential_mines)
+        logg.debug(f"{self} pointed {potential_mines} as mines")
+        return potential_mines
+
+    def _check_if_state_equals_cov_neighbours(self, potential_mines):
+        covered_neighbours = self.getcoveredneighbours()
+        mine_neighbours = self.getmineneighbours()
+        if len(covered_neighbours) == int(self.state) - len(mine_neighbours):
+            for n in covered_neighbours:
+                potential_mines.add(n)
+                n.state = 'pm'
+        return potential_mines

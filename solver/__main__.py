@@ -1,6 +1,12 @@
 import controller
 import logging
 
+import pyautogui
+pyautogui.FAILSAFE = True
+
+# If True program skip recognition of fields at open, assuming all are covered
+CLEAR_BOARD = True
+
 
 logg = logging.getLogger('solver')
 logg.setLevel(logging.DEBUG)
@@ -13,4 +19,4 @@ logg.addHandler(ch)
 
 if __name__ == '__main__':
 
-    app = controller.Controller()
+    app = controller.Controller(CLEAR_BOARD)

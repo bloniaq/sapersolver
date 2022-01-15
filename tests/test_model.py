@@ -80,7 +80,7 @@ class Test_Model:
         basic_model.fields[1][1].state = '3'
         basic_model.fields[0][2].state = '_'
         basic_model.fields[1][2].state = '1'
-        basic_model.mark_potential_mines()
+        basic_model.get_potential_mines()
         assert basic_model.fields[0][0].state == 'pm'
         assert basic_model.fields[1][0].state == 'pm'
 
