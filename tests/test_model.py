@@ -84,6 +84,34 @@ class Test_Model:
         assert basic_model.fields[0][0].state == 'pm'
         assert basic_model.fields[1][0].state == 'pm'
 
+    def test_sets_calculations_1(self, basic_model):
+        basic_model.fields[0][1].state = '3'
+        basic_model.fields[0][2].state = 'm'
+        basic_model.fields[1][1].state = '2'
+        basic_model.fields[1][2].state = '1'
+        basic_model.fields[2][1].state = '3'
+        basic_model.fields[2][2].state = '1'
+        basic_model.fields[3][1].state = 'm'
+        basic_model.fields[3][2].state = '2'
+        basic_model._sets_calculations(basic_model.fields[1][1])
+        assert basic_model.fields[3][0].state == 'pm'
+        basic_model.fields[3][0].state == '*'
+        basic_model._sets_calculations(basic_model.fields[2][1])
+        assert basic_model.fields[3][0].state == 'pm'
+
+
+    def test_sets_calculations_2(self, basic_model):
+        basic_model.fields[1][0].state = 'm'
+        basic_model.fields[1][1].state = '2'
+        basic_model.fields[1][2].state = '1'
+        basic_model.fields[1][3].state = '1'
+        basic_model._sets_calculations(basic_model.fields[1][2])
+        assert basic_model.fields[0][1].state == 'pf'
+        basic_model.fields[0][1].state = '*'
+        basic_model._sets_calculations(basic_model.fields[1][3])
+        assert basic_model.fields[0][1].state == 'pf'
+
+
 class Test_Field:
 
     @pytest.fixture
