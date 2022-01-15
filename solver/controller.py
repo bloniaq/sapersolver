@@ -22,15 +22,19 @@ class Controller:
             return
 
         self._update_board()
+        logg.info("Board updated")
         self._start_game()
+        logg.info("Game started")
         self.solve()
 
     def solve(self):
+        logg.info("Starting solving")
         i_know_what_to_do = True
         while i_know_what_to_do:
-            # potential_mines = self.model.pick_potential_mines()
-            # self.reader.mark_mines(potential_mines)
-            # fields_to_uncover = self.model.get_fields_with_cov_neighbours()
+            logg.info("Started solving loop")
+            potential_mines = self.model.mark_potential_mines()
+            self.reader.mark_mines(potential_mines)
+            fields_to_uncover = self.model.get_fields_with_cov_neighbours()
             self.reader.uncover(fields_to_uncover)
             i_know_what_to_do = self._update_board()
         logg.warning("I don't know what to do")
@@ -42,9 +46,10 @@ class Controller:
         pass
 
     def _start_game(self):
+        logg.debug("Starting game")
         for row in self.model.fields:
             for field in row:
-                if field != 'c':
+                if field.state != '*':
                     return
 
         row = random.randrange(0, self.model.rows)
@@ -55,6 +60,7 @@ class Controller:
         logg.debug(f"started game in {field.x} x, {field.y} y")
 
     def _update_board(self):
+        logg.info("Reading Board")
         changes_flag = self.reader.update_fields(self.model.fields)
         self.model.print_board()
         return changes_flag

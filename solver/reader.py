@@ -4,6 +4,7 @@ import logging
 
 logg = logging.getLogger('solver.c.reader')
 
+MOVE_DURATION = 3
 
 class Reader:
     IMAGES = {
@@ -14,7 +15,7 @@ class Reader:
         '4': 'images/four.png',
         '5': 'images/five.png',
         '6': 'images/six.png',
-        'c': 'images/covered.png',
+        '*': 'images/covered.png',
         '_': 'images/empty.png'
     }
 
@@ -30,13 +31,23 @@ class Reader:
         return topleftcorner
 
     def discover_field(self, field):
-        pag.click(field.x, field.y, button='left', clicks=2)
+        pag.moveTo(field.x, field.y, duration=MOVE_DURATION)
+        pag.doubleClick(field.x, field.y)
 
     def discover_around(self, field):
-        pag.click(field.x, field.y, button='left', clicks=2)
+        pag.moveTo(field.x, field.y, duration=MOVE_DURATION)
+        pag.tripleClick(field.x, field.y)
 
-    def mark_bomb(self, field):
+    def mark_mine(self, field):
+        """
+        WARNING: If window hasn't focus, first click just set the focus,
+        but field will be still unmarked as mine.
+        :param field: Field
+        :return: None
+        """
+        pag.moveTo(field.x, field.y, duration=MOVE_DURATION)
         pag.click(field.x, field.y, button='right')
+        field.state = 'm'
 
     def update_fields(self, fields):
         self.mouse_clean_pos()
@@ -48,10 +59,14 @@ class Reader:
                     field.state = state
                     logg.debug(f'field c{field.col} r{field.row} state: {state}')
                     changes_flag = True
+        logg.info(f'changes flag: {changes_flag}')
         return changes_flag
 
     def _recognize_field(self, field):
-        if field.state != 'c' and field.state != 'x':
+        if field.state != '*' and field.state != 'x':
+            # field.state != 'm' <--- because of unknown bug - fields are
+            # marked as pm, there is try to click, but they remained unmarked
+            # in reality.
             return field.state
         for key in self.IMAGES:
             result = pag.locateOnScreen(
@@ -64,7 +79,13 @@ class Reader:
         return 'x'
 
     def mouse_clean_pos(self):
-        pag.moveTo(10, 10)
+        pag.moveTo(40, 10)
+        pag.click()
 
     def uncover(self, fields_to_uncover):
-        pass
+        for field in fields_to_uncover:
+            self.discover_around(field)
+
+    def mark_mines(self, fields_to_mark):
+        for field in fields_to_mark:
+            self.mark_mine(field)

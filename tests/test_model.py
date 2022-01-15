@@ -75,6 +75,15 @@ class Test_Model:
         }
         assert expected_neighbours == neighbours
 
+    def test_mark_pot_mines_covered_eq_state(self, basic_model):
+        basic_model.fields[0][1].state = '2'
+        basic_model.fields[1][1].state = '3'
+        basic_model.fields[0][2].state = '_'
+        basic_model.fields[1][2].state = '1'
+        basic_model.mark_potential_mines()
+        assert basic_model.fields[0][0].state == 'pm'
+        assert basic_model.fields[1][0].state == 'pm'
+
 class Test_Field:
 
     @pytest.fixture
@@ -98,5 +107,85 @@ class Test_Field:
         assert basic_field.row is not None
         assert basic_field.x is not None
         assert basic_field.y is not None
-        assert basic_field.state == 'c'
+        assert basic_field.state == '*'
         assert basic_field.neighbours == []
+
+    def test_isnumber(self, basic_field):
+        basic_field.state = '1'
+        assert basic_field.isnumber()
+        basic_field.state = '2'
+        assert basic_field.isnumber()
+        basic_field.state = '3'
+        assert basic_field.isnumber()
+        basic_field.state = '4'
+        assert basic_field.isnumber()
+        basic_field.state = '5'
+        assert basic_field.isnumber()
+        basic_field.state = '6'
+        assert basic_field.isnumber()
+        basic_field.state = '7'
+        assert basic_field.isnumber()
+        basic_field.state = '8'
+        assert basic_field.isnumber()
+        basic_field.state = '*'
+        assert not basic_field.isnumber()
+        basic_field.state = 'm'
+        assert not basic_field.isnumber()
+        basic_field.state = 'e'
+        assert not basic_field.isnumber()
+
+    def test_iscomplete(self, basic_field):
+        basic_field.state = '2'
+        neighbour_one = Field(3, 7, 250, 250)
+        neighbour_one.state = 'e'
+        neighbour_two = Field(3, 8, 250, 250)
+        neighbour_two.state = 'm'
+        neighbour_three = Field(3, 9, 250, 250)
+        neighbour_three.state = 'm'
+        basic_field.neighbours = {
+            neighbour_one,
+            neighbour_two
+        }
+        assert not basic_field.iscomplete()
+        basic_field.neighbours.add(neighbour_three)
+        assert basic_field.iscomplete()
+
+    def test_getcoveredneighbours(self, basic_field):
+        basic_field.state = '2'
+        neighbour_one = Field(3, 7, 250, 250)
+        neighbour_one.state = 'e'
+        neighbour_two = Field(3, 8, 250, 250)
+        neighbour_two.state = 'm'
+        neighbour_three = Field(3, 9, 250, 250)
+        neighbour_three.state = '*'
+        neighbour_four = Field(4, 7, 250, 250)
+        neighbour_four.state = '*'
+        basic_field.neighbours = {
+            neighbour_one,
+            neighbour_two
+        }
+        assert len(basic_field.getcoveredneighbours()) == 0
+        basic_field.neighbours.add(neighbour_three)
+        assert len(basic_field.getcoveredneighbours()) == 1
+        basic_field.neighbours.add(neighbour_four)
+        assert len(basic_field.getcoveredneighbours()) == 2
+
+    def test_mineneighbours(self, basic_field):
+        basic_field.state = '2'
+        neighbour_one = Field(3, 7, 250, 250)
+        neighbour_one.state = 'e'
+        neighbour_two = Field(3, 8, 250, 250)
+        neighbour_two.state = 'm'
+        neighbour_three = Field(3, 9, 250, 250)
+        neighbour_three.state = '*'
+        neighbour_four = Field(4, 7, 250, 250)
+        neighbour_four.state = 'm'
+        basic_field.neighbours = {
+            neighbour_one,
+            neighbour_two
+        }
+        assert len(basic_field.getmineneighbours()) == 1
+        basic_field.neighbours.add(neighbour_three)
+        assert len(basic_field.getmineneighbours()) == 1
+        basic_field.neighbours.add(neighbour_four)
+        assert len(basic_field.getmineneighbours()) == 2
