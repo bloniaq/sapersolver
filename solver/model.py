@@ -8,25 +8,31 @@ class Board:
     COLUMNS = 30
     ROWS = 16
 
-    def __init__(self, left, top) -> None:
+    def __init__(self, left, top,
+                 columns=COLUMNS, rows=ROWS, pref_state=None) -> None:
         self.getneighbours = None
-        self.columns = self.COLUMNS
-        self.rows = self.ROWS
-        self._init_fields(left, top)
+        self.columns = columns
+        self.rows = rows
+        self._init_fields(left, top, pref_state)
         self._bind_neighbours()
 
-    def _init_fields(self, left, top):
+    def _init_fields(self, left, top, preferred_state=None):
         self.fields = []
         logg.debug(f"init fields parameters vals: left: {left}, top: {top}")
 
+        # adjustment to center of minesweeper field button
         x = first_row_x = left + 23
         y = top + 23
 
         for row in range(self.rows):
             row_list = []
             for col in range(self.columns):
-                field = Field(col, row, x, y)
+                if preferred_state is None:
+                    field = Field(col, row, x, y)
+                else:
+                    field = Field(col, row, x, y, preferred_state)
                 row_list.append(field)
+                # 51 is width of button in pixels
                 x += 51
             x = first_row_x
             y += 51
@@ -76,12 +82,15 @@ class Board:
                     number_neighbours.add(neighbour)
         return number_neighbours
 
-    def get_potential_mines(self):
+    def get_potential(self):
         potential_mines = set()
+        potential_numbers = set()
         for row in self.fields:
             for field in row:
                 if field.isnumber():
-                    potential_mines |= field.point_mines_around()
+                    pointed_mines, pointed_numbers = field.point_mines_around()
+                    potential_mines |= pointed_mines
+                    potential_numbers |= pointed_numbers
         logg.info(f"All potential mines for now: {potential_mines}")
         their_complete_number_nbrs = set()
         for mine in potential_mines:
@@ -89,28 +98,28 @@ class Board:
                 if n.isnumber() and n.iscomplete():
                     their_complete_number_nbrs.add(n)
         logg.info(f"Neighbour numbers of mines: {their_complete_number_nbrs}")
-        return potential_mines, their_complete_number_nbrs
+        return potential_mines, potential_numbers, their_complete_number_nbrs
 
 
 class Field:
 
     # STATES:
     # '*' = covered
-    # 'e' = empty
+    # '_' = empty
     # 'm' = mine
     # '1-8' = value
 
-    def __init__(self, col: int, row: int, x: int, y: int) -> None:
+    def __init__(self, col: int, row: int, x: int, y: int, state='*') -> None:
         self.col = col
         self.row = row
         self.x = x
         self.y = y
-        self.state = '*'
-        self.neighbours = []
+        self.state = state
+        self.neighbours = set()
         self.region = self._get_region()
 
     def __repr__(self):
-        return f'Field {self.state.upper()} Col:{self.col}, Row:{self.row}'
+        return f'Field S:{self.state.upper()} C:{self.col}, R:{self.row}'
 
     def _get_region(self):
         x = self.x - 20
@@ -124,6 +133,13 @@ class Field:
             return True
         else:
             return False
+
+    def getnumberneighbours(self):
+        number_neighbours = set()
+        for n in self.neighbours:
+            if n.isnumber():
+                number_neighbours.add(n)
+        return number_neighbours
 
     def iscomplete(self):
         if not self.isnumber():
@@ -157,22 +173,90 @@ class Field:
 
     def point_mines_around(self):
         potential_mines = set()
-        # methods = (
-        #     self._check_if_state_equals_cov_neighbours
-        # )
-        # for method in methods:
-        #     method()
+        potential_numbers = set()
+        methods = (
+            self._check_if_state_equals_cov_neighbours,
+            self._check_whats_with_neighbours
+        )
+        for method in methods:
+            pot_mines, pot_numbers = method(potential_mines, potential_numbers)
+            potential_mines |= pot_mines
+            potential_numbers |= pot_numbers
 
-        potential_mines = self._check_if_state_equals_cov_neighbours(
-            potential_mines)
         logg.debug(f"{self} pointed {potential_mines} as mines")
-        return potential_mines
+        logg.debug(f"{self} pointed {potential_numbers} as numbers")
+        return potential_mines, potential_numbers
 
-    def _check_if_state_equals_cov_neighbours(self, potential_mines):
+    def _check_if_state_equals_cov_neighbours(self, pot_mines, pot_numbers):
         covered_neighbours = self.getcoveredneighbours()
         mine_neighbours = self.getmineneighbours()
         if len(covered_neighbours) == int(self.state) - len(mine_neighbours):
             for n in covered_neighbours:
-                potential_mines.add(n)
+                pot_mines.add(n)
                 n.state = 'pm'
-        return potential_mines
+        return pot_mines, pot_numbers
+
+    def _check_whats_with_neighbours(self, pot_mines, pot_numbers):
+        logg.debug(f"Checking whats with {self} neighbours")
+        for nn in self.getnumberneighbours():
+            intersection = self.getcoveredneighbours().intersection(
+                nn.getcoveredneighbours())
+            difference = self.getcoveredneighbours().difference(
+                nn.getcoveredneighbours())
+            if not intersection:
+                continue
+            logg.debug(f"Intersection with {nn}: {intersection}")
+            logg.debug(f"Difference with {nn}: {difference}")
+            mines_in_intersection = int(nn.state) - \
+                                    len(nn.getmineneighbours())
+            other_mines_count = int(self.state) - mines_in_intersection - \
+                                len(self.getmineneighbours())
+            if mines_in_intersection < 0:
+                logg.error(f"{self} x {nn}: mines in intersection "
+                
+                           f"{mines_in_intersection}")
+
+            logg.debug(f"other mines: {other_mines_count}")
+            if other_mines_count == 0 and intersection == nn.getcoveredneighbours():
+                pot_numbers |= self.getcoveredneighbours().difference(
+                    nn.getcoveredneighbours())
+                logg.debug(f"Potential numbers: {pot_numbers}")
+            elif other_mines_count == len(difference) and intersection == nn.getcoveredneighbours():
+                pot_mines |= difference
+                for field in difference:
+                    field.state = 'pm'
+                logg.debug(f"Potenial mines: {pot_mines}")
+            elif (len(difference) + min(len(intersection), int(nn.state))) == int(self.state) - len(self.getmineneighbours()):
+                pot_mines |= difference
+                nn_difference = nn.getcoveredneighbours().difference(intersection)
+                pot_numbers |= nn_difference
+                for field in difference:
+                    field.state = 'pm'
+                logg.debug(f"Potenial mines (2nd): {pot_mines}, {len(difference)}+")
+                for field in nn_difference:
+                    field.state = 'pn'
+                logg.debug(f"Potenial numbers (3nd): {pot_numbers}, {len(nn_difference)}")
+        return pot_mines, pot_numbers
+
+    def get_nbours(self, *args):
+        neighbours = set()
+        args = list(args)
+        if not args:
+            args = ['*', '_', 'm', 'n']
+        if 'n' in args:
+            args.remove('n')
+            for n in range(ord('1'), ord('8')):
+                args.append(chr(n))
+        if 'm' in args:
+            args.append('pm')
+        for arg in args:
+            neighbours |= {nbour for nbour in self.neighbours if nbour.state == arg}
+        return neighbours
+
+    def _intersection(self, other_field: 'Field') -> set:
+        self_covered = self.get_nbours('*')
+        other_field_covered = other_field.get_nbours('*')
+        logging.debug(f'self_covered: {self_covered}')
+        logging.debug(f'other_field_covered: {other_field_covered}')
+        intersection = self_covered.intersection(other_field_covered)
+        return intersection
