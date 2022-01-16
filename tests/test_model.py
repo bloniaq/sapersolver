@@ -196,21 +196,18 @@ class TestField:
         basic_field.state = 'e'
         assert not basic_field.isnumber()
 
-    def test_iscomplete(self, basic_field):
-        basic_field.state = '2'
-        neighbour_one = Field(7, 3, 250, 250)
-        neighbour_one.state = 'e'
-        neighbour_two = Field(8, 3, 250, 250)
-        neighbour_two.state = 'm'
-        neighbour_three = Field(9, 3, 250, 250)
-        neighbour_three.state = 'm'
-        basic_field.neighbours = {
-            neighbour_one,
-            neighbour_two
-        }
-        assert not basic_field.iscomplete()
-        basic_field.neighbours.add(neighbour_three)
-        assert basic_field.iscomplete()
+    def test_iscomplete(self, custom_board):
+        board_rows, board_columns = 3, 3
+        states = (
+            '_', '1', '*',
+            'm', '3', '*',
+            'm', '3', '*'
+        )
+        fields = custom_board(board_columns, board_rows, states).fields
+
+        assert not fields[1][1].iscomplete()
+        assert not fields[2][1].iscomplete()
+        assert fields[0][1].iscomplete()
 
     def test_custom_board_fixture(self, custom_board):
         board_columns, board_rows = 4, 4
@@ -220,9 +217,8 @@ class TestField:
             '*', '2', 'm', '2',
             '1', '1', '1', '2'
         )
-        board = custom_board(board_columns, board_rows, states)
-        board = board.fields
-        assert board[0][0].state == '*'
+        fields = custom_board(board_columns, board_rows, states).fields
+        assert fields[0][0].state == '*'
 
     def test_intersection(self, custom_board):
         board_columns, board_rows = 4, 4
@@ -232,45 +228,43 @@ class TestField:
             '*', '2', 'm', '2',
             '1', '1', '1', '2'
         )
-        board = custom_board(board_columns, board_rows, states)
-        board = board.fields
-        field_1 = board[0][1]
-        field_2 = board[1][1]
-        assert field_1._intersection(field_2) == {board[0][0], board[1][0]}
+        fields = custom_board(board_columns, board_rows, states).fields
+        field_1 = fields[0][1]
+        field_2 = fields[1][1]
+        assert field_1._intersection(field_2) == {fields[0][0], fields[1][0]}
 
-    def test_get_nbours(self, field_with_neighbours):
-        field = field_with_neighbours[0]
-        nbours = field_with_neighbours[1]
+    def test_get_nbours(self, custom_board):
+        board_columns, board_rows = 3, 3
+        states = (
+            '*', '1', '_',
+            '*', '2', '1',
+            '*', '2', 'm'
+        )
+        fields = custom_board(board_columns, board_rows, states).fields
+
+        field = fields[1][1]
         all_neighbours = field.get_nbours()
-        assert all_neighbours == set(nbours)
+        assert all_neighbours == field.neighbours
         mine_neighbours = field.get_nbours('m')
-        assert mine_neighbours == {nbours[7]}
+        assert mine_neighbours == {fields[2][2]}
         number_neighbours = field.get_nbours('n')
-        assert number_neighbours == {nbours[1], nbours[4], nbours[6]}
+        assert number_neighbours == {fields[0][1], fields[1][2], fields[2][1]}
         one_neighbours = field.get_nbours('1')
-        assert one_neighbours == {nbours[1], nbours[4]}
+        assert one_neighbours == {fields[0][1], fields[1][2]}
         covered_nbours = field.get_nbours('*')
-        assert covered_nbours == {nbours[0], nbours[3], nbours[5]}
+        assert covered_nbours == {fields[0][0], fields[1][0], fields[2][0]}
 
-    def test_getcoveredneighbours(self, basic_field):
-        basic_field.state = '2'
-        neighbour_one = Field(7, 3, 250, 250)
-        neighbour_one.state = 'e'
-        neighbour_two = Field(8, 3, 250, 250)
-        neighbour_two.state = 'm'
-        neighbour_three = Field(9, 3, 250, 250)
-        neighbour_three.state = '*'
-        neighbour_four = Field(7, 4, 250, 250)
-        neighbour_four.state = '*'
-        basic_field.neighbours = {
-            neighbour_one,
-            neighbour_two
-        }
-        assert len(basic_field.getcoveredneighbours()) == 0
-        basic_field.neighbours.add(neighbour_three)
-        assert len(basic_field.getcoveredneighbours()) == 1
-        basic_field.neighbours.add(neighbour_four)
-        assert len(basic_field.getcoveredneighbours()) == 2
+    def test_getcoveredneighbours(self, custom_board):
+        board_rows, board_columns = 3, 2
+        states = (
+            '_', '*',
+            'm', '2',
+            '*', '1'
+        )
+        fields = custom_board(board_columns, board_rows, states).fields
+
+        assert len(fields[1][1].getcoveredneighbours()) == 2
+        assert len(fields[2][1].getcoveredneighbours()) == 1
 
     def test_two_ones_near_border(self, custom_board):
         board_columns, board_rows = 3, 3
@@ -293,22 +287,14 @@ class TestField:
         assert not potential_mines
         assert expected_potential_number in potential_numbers
 
-    def test_mineneighbours(self, basic_field):
-        basic_field.state = '2'
-        neighbour_one = Field(7, 3, 250, 250)
-        neighbour_one.state = 'e'
-        neighbour_two = Field(8, 3, 250, 250)
-        neighbour_two.state = 'm'
-        neighbour_three = Field(9, 3, 250, 250)
-        neighbour_three.state = '*'
-        neighbour_four = Field(7, 4, 250, 250)
-        neighbour_four.state = 'm'
-        basic_field.neighbours = {
-            neighbour_one,
-            neighbour_two
-        }
-        assert len(basic_field.getmineneighbours()) == 1
-        basic_field.neighbours.add(neighbour_three)
-        assert len(basic_field.getmineneighbours()) == 1
-        basic_field.neighbours.add(neighbour_four)
-        assert len(basic_field.getmineneighbours()) == 2
+    def test_mineneighbours(self, custom_board):
+        board_rows, board_columns = 3, 2
+        states = (
+            '_', '*',
+            'm', '2',
+            '*', '1'
+        )
+        fields = custom_board(board_columns, board_rows, states).fields
+
+        assert len(fields[1][1].getmineneighbours()) == 1
+        assert len(fields[2][1].getmineneighbours()) == 1
