@@ -28,9 +28,9 @@ class Board:
             row_list = []
             for col in range(self.columns):
                 if preferred_state is None:
-                    field = Field(col, row, x, y)
+                    field = Field(row, col, x, y)
                 else:
-                    field = Field(col, row, x, y, preferred_state)
+                    field = Field(row, col, x, y, preferred_state)
                 row_list.append(field)
                 # 51 is width of button in pixels
                 x += 51
@@ -109,7 +109,7 @@ class Field:
     # 'm' = mine
     # '1-8' = value
 
-    def __init__(self, col: int, row: int, x: int, y: int, state='*') -> None:
+    def __init__(self, row: int, col: int, x: int, y: int, state='*') -> None:
         self.col = col
         self.row = row
         self.x = x

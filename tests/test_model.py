@@ -125,7 +125,7 @@ class TestField:
 
     @pytest.fixture
     def basic_field(self) -> Field:
-        return Field(4, 8, 50, 70)
+        return Field(8, 4, 50, 70)
 
     @pytest.fixture
     def field_with_neighbours(self):
@@ -133,12 +133,12 @@ class TestField:
         y_bar = 100
         field = Field(1, 1, x_foo, y_bar, state='2')
         nbour_nw = Field(0, 0, x_foo, y_bar, state='*')
-        nbour_n = Field(1, 0, x_foo, y_bar, state='1')
-        nbour_ne = Field(2, 0, x_foo, y_bar, state='_')
-        nbour_w = Field(0, 1, x_foo, y_bar, state='*')
-        nbour_e = Field(2, 1, x_foo, y_bar, state='1')
-        nbour_sw = Field(0, 2, x_foo, y_bar, state='*')
-        nbour_s = Field(1, 2, x_foo, y_bar, state='2')
+        nbour_n = Field(0, 1, x_foo, y_bar, state='1')
+        nbour_ne = Field(0, 2, x_foo, y_bar, state='_')
+        nbour_w = Field(1, 0, x_foo, y_bar, state='*')
+        nbour_e = Field(1, 2, x_foo, y_bar, state='1')
+        nbour_sw = Field(2, 0, x_foo, y_bar, state='*')
+        nbour_s = Field(2, 1, x_foo, y_bar, state='2')
         nbour_se = Field(2, 2, x_foo, y_bar, state='m')
         nbour_n.neighbours = {nbour_nw, nbour_ne, nbour_w, field, nbour_e}
         nbours = [nbour_nw, nbour_n, nbour_ne, nbour_w, nbour_e, nbour_sw,
@@ -198,11 +198,11 @@ class TestField:
 
     def test_iscomplete(self, basic_field):
         basic_field.state = '2'
-        neighbour_one = Field(3, 7, 250, 250)
+        neighbour_one = Field(7, 3, 250, 250)
         neighbour_one.state = 'e'
-        neighbour_two = Field(3, 8, 250, 250)
+        neighbour_two = Field(8, 3, 250, 250)
         neighbour_two.state = 'm'
-        neighbour_three = Field(3, 9, 250, 250)
+        neighbour_three = Field(9, 3, 250, 250)
         neighbour_three.state = 'm'
         basic_field.neighbours = {
             neighbour_one,
@@ -254,13 +254,13 @@ class TestField:
 
     def test_getcoveredneighbours(self, basic_field):
         basic_field.state = '2'
-        neighbour_one = Field(3, 7, 250, 250)
+        neighbour_one = Field(7, 3, 250, 250)
         neighbour_one.state = 'e'
-        neighbour_two = Field(3, 8, 250, 250)
+        neighbour_two = Field(8, 3, 250, 250)
         neighbour_two.state = 'm'
-        neighbour_three = Field(3, 9, 250, 250)
+        neighbour_three = Field(9, 3, 250, 250)
         neighbour_three.state = '*'
-        neighbour_four = Field(4, 7, 250, 250)
+        neighbour_four = Field(7, 4, 250, 250)
         neighbour_four.state = '*'
         basic_field.neighbours = {
             neighbour_one,
@@ -295,13 +295,13 @@ class TestField:
 
     def test_mineneighbours(self, basic_field):
         basic_field.state = '2'
-        neighbour_one = Field(3, 7, 250, 250)
+        neighbour_one = Field(7, 3, 250, 250)
         neighbour_one.state = 'e'
-        neighbour_two = Field(3, 8, 250, 250)
+        neighbour_two = Field(8, 3, 250, 250)
         neighbour_two.state = 'm'
-        neighbour_three = Field(3, 9, 250, 250)
+        neighbour_three = Field(9, 3, 250, 250)
         neighbour_three.state = '*'
-        neighbour_four = Field(4, 7, 250, 250)
+        neighbour_four = Field(7, 4, 250, 250)
         neighbour_four.state = 'm'
         basic_field.neighbours = {
             neighbour_one,
