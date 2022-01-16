@@ -1,8 +1,12 @@
 from solver.model import *
 import pytest
+import logging
 
 
-class Test_Model:
+log = logging.getLogger('solver.tests')
+
+
+class TestModel:
 
     @pytest.fixture
     def basic_model(self) -> Board:
@@ -80,53 +84,77 @@ class Test_Model:
         basic_model.fields[1][1].state = '3'
         basic_model.fields[0][2].state = '_'
         basic_model.fields[1][2].state = '1'
-        basic_model.get_potential_mines()
+        basic_model.get_potential()
         assert basic_model.fields[0][0].state == 'pm'
         assert basic_model.fields[1][0].state == 'pm'
 
-    def test_sets_calculations_1(self, basic_model):
-        basic_model.fields[0][1].state = '3'
-        basic_model.fields[0][2].state = 'm'
-        basic_model.fields[1][1].state = '2'
-        basic_model.fields[1][2].state = '1'
-        basic_model.fields[2][1].state = '3'
-        basic_model.fields[2][2].state = '1'
-        basic_model.fields[3][1].state = 'm'
-        basic_model.fields[3][2].state = '2'
-        basic_model._sets_calculations(basic_model.fields[1][1])
-        assert basic_model.fields[3][0].state == 'pm'
-        basic_model.fields[3][0].state == '*'
-        basic_model._sets_calculations(basic_model.fields[2][1])
-        assert basic_model.fields[3][0].state == 'pm'
+    # def test_sets_calculations_1(self, basic_model):
+    #     basic_model.fields[0][1].state = '3'
+    #     basic_model.fields[0][2].state = 'm'
+    #     basic_model.fields[1][1].state = '2'
+    #     basic_model.fields[1][2].state = '1'
+    #     basic_model.fields[2][1].state = '3'
+    #     basic_model.fields[2][2].state = '1'
+    #     basic_model.fields[3][1].state = 'm'
+    #     basic_model.fields[3][2].state = '2'
+    #     basic_model._sets_calculations(basic_model.fields[1][1])
+    #     assert basic_model.fields[3][0].state == 'pm'
+    #     basic_model.fields[3][0].state == '*'
+    #     basic_model._sets_calculations(basic_model.fields[2][1])
+    #     assert basic_model.fields[3][0].state == 'pm'
+
+    # def test_sets_calculations_2(self, basic_model):
+    #     basic_model.fields[1][0].state = 'm'
+    #     basic_model.fields[1][1].state = '2'
+    #     basic_model.fields[1][2].state = '1'
+    #     basic_model.fields[1][3].state = '1'
+    #     basic_model._sets_calculations(basic_model.fields[1][2])
+    #     assert basic_model.fields[0][1].state == 'pf'
+    #     basic_model.fields[0][1].state = '*'
+    #     basic_model._sets_calculations(basic_model.fields[1][3])
+    #     assert basic_model.fields[0][1].state == 'pf'
 
 
-    def test_sets_calculations_2(self, basic_model):
-        basic_model.fields[1][0].state = 'm'
-        basic_model.fields[1][1].state = '2'
-        basic_model.fields[1][2].state = '1'
-        basic_model.fields[1][3].state = '1'
-        basic_model._sets_calculations(basic_model.fields[1][2])
-        assert basic_model.fields[0][1].state == 'pf'
-        basic_model.fields[0][1].state = '*'
-        basic_model._sets_calculations(basic_model.fields[1][3])
-        assert basic_model.fields[0][1].state == 'pf'
-
-
-class Test_Field:
+class TestField:
 
     @pytest.fixture
     def basic_field(self) -> Field:
-        COLUMN = 4
-        ROW = 8
-        X = 50
-        Y = 70
-        field = Field(
-            COLUMN,
-            ROW,
-            X,
-            Y
-        )
-        return field
+        return Field(4, 8, 50, 70)
+
+    @pytest.fixture
+    def field_with_neighbours(self):
+        x_foo = 100
+        y_bar = 100
+        field = Field(1, 1, x_foo, y_bar, state='2')
+        nbour_nw = Field(0, 0, x_foo, y_bar, state='*')
+        nbour_n = Field(1, 0, x_foo, y_bar, state='1')
+        nbour_ne = Field(2, 0, x_foo, y_bar, state='_')
+        nbour_w = Field(0, 1, x_foo, y_bar, state='*')
+        nbour_e = Field(2, 1, x_foo, y_bar, state='1')
+        nbour_sw = Field(0, 2, x_foo, y_bar, state='*')
+        nbour_s = Field(1, 2, x_foo, y_bar, state='2')
+        nbour_se = Field(2, 2, x_foo, y_bar, state='m')
+        nbour_n.neighbours = {nbour_nw, nbour_ne, nbour_w, field, nbour_e}
+        nbours = [nbour_nw, nbour_n, nbour_ne, nbour_w, nbour_e, nbour_sw,
+                  nbour_s, nbour_se]
+        field.neighbours = set(nbours)
+        return field, nbours
+
+    @pytest.fixture
+    def custom_board(self):
+
+        def create_testboard(cols, rows, states: tuple) -> Board:
+            if cols * rows != len(states):
+                log.error("Passed wrong number of arguments")
+                return Board(0, 0, 5, 5, '!')
+            board = Board(0, 0, cols, rows)
+            state = (state for state in states)
+            for row in board.fields:
+                for field in row:
+                    field.state = next(state)
+            return board
+
+        return create_testboard
 
     def test_field_init(self, basic_field):
         assert basic_field is not None
@@ -136,7 +164,7 @@ class Test_Field:
         assert basic_field.x is not None
         assert basic_field.y is not None
         assert basic_field.state == '*'
-        assert basic_field.neighbours == []
+        assert basic_field.neighbours == set()
 
     def test_isnumber(self, basic_field):
         basic_field.state = '1'
@@ -178,6 +206,46 @@ class Test_Field:
         basic_field.neighbours.add(neighbour_three)
         assert basic_field.iscomplete()
 
+    def test_custom_board_fixture(self, custom_board):
+        board_columns, board_rows = 4, 4
+        states = (
+            '*', '1', '_', '_',
+            '*', '2', '1', '2',
+            '*', '2', 'm', '2',
+            '1', '1', '1', '2'
+        )
+        board = custom_board(board_columns, board_rows, states)
+        board = board.fields
+        assert board[0][0].state == '*'
+
+    def test_intersection(self, custom_board):
+        board_columns, board_rows = 4, 4
+        states = (
+            '*', '1', '_', '_',
+            '*', '2', '1', '2',
+            '*', '2', 'm', '2',
+            '1', '1', '1', '2'
+        )
+        board = custom_board(board_columns, board_rows, states)
+        board = board.fields
+        field_1 = board[0][1]
+        field_2 = board[1][1]
+        assert field_1._intersection(field_2) == {board[0][0], board[1][0]}
+
+    def test_get_nbours(self, field_with_neighbours):
+        field = field_with_neighbours[0]
+        nbours = field_with_neighbours[1]
+        all_neighbours = field.get_nbours()
+        assert all_neighbours == set(nbours)
+        mine_neighbours = field.get_nbours('m')
+        assert mine_neighbours == {nbours[7]}
+        number_neighbours = field.get_nbours('n')
+        assert number_neighbours == {nbours[1], nbours[4], nbours[6]}
+        one_neighbours = field.get_nbours('1')
+        assert one_neighbours == {nbours[1], nbours[4]}
+        covered_nbours = field.get_nbours('*')
+        assert covered_nbours == {nbours[0], nbours[3], nbours[5]}
+
     def test_getcoveredneighbours(self, basic_field):
         basic_field.state = '2'
         neighbour_one = Field(3, 7, 250, 250)
@@ -197,6 +265,27 @@ class Test_Field:
         assert len(basic_field.getcoveredneighbours()) == 1
         basic_field.neighbours.add(neighbour_four)
         assert len(basic_field.getcoveredneighbours()) == 2
+
+    def test_two_ones_near_border(self, custom_board):
+        board_columns, board_rows = 3, 3
+        states = (
+            '*', '1', '_',
+            '*', '1', '_',
+            '*', '2', '_'
+        )
+        board = custom_board(board_columns, board_rows, states)
+        board = board.fields
+
+        checked_field = board[1][1]
+        expected_potential_number = board[2][0]
+
+        potential_mines = set()
+        potential_numbers = set()
+        potential_mines, potential_numbers =\
+            checked_field._check_whats_with_neighbours(
+                potential_mines, potential_numbers)
+        assert not potential_mines
+        assert expected_potential_number in potential_numbers
 
     def test_mineneighbours(self, basic_field):
         basic_field.state = '2'
