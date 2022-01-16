@@ -260,8 +260,8 @@ class TestField:
         )
         fields = custom_board(board_rows, board_columns, states).fields
 
-        assert len(fields[1][1].getcoveredneighbours()) == 2
-        assert len(fields[2][1].getcoveredneighbours()) == 1
+        assert len(fields[1][1].get_nbours('*')) == 2
+        assert len(fields[2][1].get_nbours('*')) == 1
 
     def test_two_ones_near_border(self, custom_board):
         board_rows, board_columns = 3, 3
@@ -292,5 +292,5 @@ class TestField:
         )
         fields = custom_board(board_rows, board_columns, states).fields
 
-        assert len(fields[1][1].getmineneighbours()) == 1
-        assert len(fields[2][1].getmineneighbours()) == 1
+        assert len(fields[1][1].get_nbours('m')) == 1
+        assert len(fields[2][1].get_nbours('m')) == 1

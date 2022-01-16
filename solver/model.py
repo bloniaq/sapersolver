@@ -62,7 +62,7 @@ class Board:
         fields_to_click = set()
         for row in self.fields:
             for field in row:
-                if field.iscomplete() and field.getcoveredneighbours():
+                if field.iscomplete() and field.get_nbours('*'):
                     fields_to_click.add(field)
         logg.info(f"complete_fields_w_cov_neighbours: {fields_to_click}")
         return fields_to_click
@@ -133,13 +133,6 @@ class Field:
         else:
             return False
 
-    def getnumberneighbours(self):
-        number_neighbours = set()
-        for n in self.neighbours:
-            if n.isnumber():
-                number_neighbours.add(n)
-        return number_neighbours
-
     def iscomplete(self):
         if not self.isnumber():
             return False
@@ -151,91 +144,6 @@ class Field:
             return True
         else:
             return False
-
-    def getcoveredneighbours(self):
-        covered_neighbours = set()
-        for n in self.neighbours:
-            if n.state == '*':
-                covered_neighbours.add(n)
-        return covered_neighbours
-
-    def getmineneighbours(self):
-        mine_neighbours = set()
-        for n in self.neighbours:
-            if n.state in ('m', 'pm'):
-                mine_neighbours.add(n)
-        return mine_neighbours
-
-    ###
-    # POINTING MINES
-    ###
-
-    def point_mines_around(self):
-        potential_mines = set()
-        potential_numbers = set()
-        methods = (
-            self._check_if_state_equals_cov_neighbours,
-            self._check_whats_with_neighbours
-        )
-        for method in methods:
-            pot_mines, pot_numbers = method(potential_mines, potential_numbers)
-            potential_mines |= pot_mines
-            potential_numbers |= pot_numbers
-
-        logg.debug(f"{self} pointed {potential_mines} as mines")
-        logg.debug(f"{self} pointed {potential_numbers} as numbers")
-        return potential_mines, potential_numbers
-
-    def _check_if_state_equals_cov_neighbours(self, pot_mines, pot_numbers):
-        covered_neighbours = self.getcoveredneighbours()
-        mine_neighbours = self.getmineneighbours()
-        if len(covered_neighbours) == int(self.state) - len(mine_neighbours):
-            for n in covered_neighbours:
-                pot_mines.add(n)
-                n.state = 'pm'
-        return pot_mines, pot_numbers
-
-    def _check_whats_with_neighbours(self, pot_mines, pot_numbers):
-        logg.debug(f"Checking whats with {self} neighbours")
-        for nn in self.getnumberneighbours():
-            intersection = self.getcoveredneighbours().intersection(
-                nn.getcoveredneighbours())
-            difference = self.getcoveredneighbours().difference(
-                nn.getcoveredneighbours())
-            if not intersection:
-                continue
-            logg.debug(f"Intersection with {nn}: {intersection}")
-            logg.debug(f"Difference with {nn}: {difference}")
-            mines_in_intersection = int(nn.state) - \
-                                    len(nn.getmineneighbours())
-            other_mines_count = int(self.state) - mines_in_intersection - \
-                                len(self.getmineneighbours())
-            if mines_in_intersection < 0:
-                logg.error(f"{self} x {nn}: mines in intersection "
-                
-                           f"{mines_in_intersection}")
-
-            logg.debug(f"other mines: {other_mines_count}")
-            if other_mines_count == 0 and intersection == nn.getcoveredneighbours():
-                pot_numbers |= self.getcoveredneighbours().difference(
-                    nn.getcoveredneighbours())
-                logg.debug(f"Potential numbers: {pot_numbers}")
-            elif other_mines_count == len(difference) and intersection == nn.getcoveredneighbours():
-                pot_mines |= difference
-                for field in difference:
-                    field.state = 'pm'
-                logg.debug(f"Potenial mines: {pot_mines}")
-            elif (len(difference) + min(len(intersection), int(nn.state))) == int(self.state) - len(self.getmineneighbours()):
-                pot_mines |= difference
-                nn_difference = nn.getcoveredneighbours().difference(intersection)
-                pot_numbers |= nn_difference
-                for field in difference:
-                    field.state = 'pm'
-                logg.debug(f"Potenial mines (2nd): {pot_mines}, {len(difference)}+")
-                for field in nn_difference:
-                    field.state = 'pn'
-                logg.debug(f"Potenial numbers (3nd): {pot_numbers}, {len(nn_difference)}")
-        return pot_mines, pot_numbers
 
     def get_nbours(self, *args):
         neighbours = set()
@@ -259,3 +167,74 @@ class Field:
         logging.debug(f'other_field_covered: {other_field_covered}')
         intersection = self_covered.intersection(other_field_covered)
         return intersection
+
+    ###
+    # POINTING MINES
+    ###
+
+    def point_mines_around(self):
+        potential_mines = set()
+        potential_numbers = set()
+        methods = (
+            self._check_if_state_equals_cov_neighbours,
+            self._check_whats_with_neighbours
+        )
+        for method in methods:
+            pot_mines, pot_numbers = method(potential_mines, potential_numbers)
+            potential_mines |= pot_mines
+            potential_numbers |= pot_numbers
+
+        logg.debug(f"{self} pointed {potential_mines} as mines")
+        logg.debug(f"{self} pointed {potential_numbers} as numbers")
+        return potential_mines, potential_numbers
+
+    def _check_if_state_equals_cov_neighbours(self, pot_mines, pot_numbers):
+        covered_neighbours = self.get_nbours('*')
+        mine_neighbours = self.get_nbours('m')
+        if len(covered_neighbours) == int(self.state) - len(mine_neighbours):
+            for n in covered_neighbours:
+                pot_mines.add(n)
+                n.state = 'pm'
+        return pot_mines, pot_numbers
+
+    def _check_whats_with_neighbours(self, pot_mines, pot_numbers):
+        logg.debug(f"Checking whats with {self} neighbours")
+        for nn in self.get_nbours('n'):
+            intersection = self.get_nbours('*').intersection(
+                nn.get_nbours('*'))
+            difference = self.get_nbours('*').difference(
+                nn.get_nbours('*'))
+            if not intersection:
+                continue
+            logg.debug(f"Intersection with {nn}: {intersection}")
+            logg.debug(f"Difference with {nn}: {difference}")
+            mines_in_intersection = int(nn.state) - \
+                                    len(nn.get_nbours('m'))
+            other_mines_count = int(self.state) - mines_in_intersection - \
+                                len(self.get_nbours('m'))
+            if mines_in_intersection < 0:
+                logg.error(f"{self} x {nn}: mines in intersection "
+                
+                           f"{mines_in_intersection}")
+
+            logg.debug(f"other mines: {other_mines_count}")
+            if other_mines_count == 0 and intersection == nn.get_nbours('*'):
+                pot_numbers |= self.get_nbours('*').difference(
+                    nn.get_nbours('*'))
+                logg.debug(f"Potential numbers: {pot_numbers}")
+            elif other_mines_count == len(difference) and intersection == nn.get_nbours('*'):
+                pot_mines |= difference
+                for field in difference:
+                    field.state = 'pm'
+                logg.debug(f"Potenial mines: {pot_mines}")
+            elif (len(difference) + min(len(intersection), int(nn.state))) == int(self.state) - len(self.get_nbours('m')):
+                pot_mines |= difference
+                nn_difference = nn.get_nbours('*').difference(intersection)
+                pot_numbers |= nn_difference
+                for field in difference:
+                    field.state = 'pm'
+                logg.debug(f"Potenial mines (2nd): {pot_mines}, {len(difference)}+")
+                for field in nn_difference:
+                    field.state = 'pn'
+                logg.debug(f"Potenial numbers (3nd): {pot_numbers}, {len(nn_difference)}")
+        return pot_mines, pot_numbers
