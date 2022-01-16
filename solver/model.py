@@ -179,6 +179,15 @@ class Field:
     ###
 
     def figure_out(self):
+        """
+        Runs one by one submethods for pointing mines and numbers around field
+
+        Submethods has to changes fields status to:
+        'pm' - potential mines
+        'pn' - potential number
+
+        :return: potential_mines, potential_numbers : set, set
+        """
         potential_mines = set()
         potential_numbers = set()
         methods = (
@@ -190,8 +199,9 @@ class Field:
             potential_mines |= pot_mines
             potential_numbers |= pot_numbers
 
-        logg.debug(f"{self} pointed {potential_mines} as mines")
-        logg.debug(f"{self} pointed {potential_numbers} as numbers")
+        logg.info(f"{self} pointed {potential_mines} as mines")
+        logg.info(f"{self} pointed {potential_numbers} as numbers")
+
         return potential_mines, potential_numbers
 
     def _check_if_state_equals_cov_neighbours(self, pot_mines, pot_numbers):
