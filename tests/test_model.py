@@ -26,6 +26,12 @@ class TestModel:
         assert basic_model.columns == 30
         assert basic_model.rows == 16
 
+    def test_preffered_state(self):
+        board_R = Board(200, 400, pref_state='R')
+        assert board_R.fields[0][0].state == 'R'
+        board_None = Board(200, 400, pref_state=None)
+        assert board_None.fields[0][0].state == '*'
+
     def test_get_field(self, basic_model):
         row = 3
         col = 5
