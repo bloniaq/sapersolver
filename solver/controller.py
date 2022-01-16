@@ -37,7 +37,7 @@ class Controller:
             fields_to_uncover = set()
 
             potential_mines, potential_numbers, neighbours_of_mines \
-                = self.model.get_potential()
+                = self.model.get_potentials()
             self.reader.mark_multiple_field_as_mines(potential_mines)
             fields_to_uncover |= neighbours_of_mines
             logg.debug(f"Neighbours of mines: {neighbours_of_mines}")

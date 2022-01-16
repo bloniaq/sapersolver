@@ -5,6 +5,21 @@ import logging
 
 log = logging.getLogger('solver.tests')
 
+@pytest.fixture
+def custom_board():
+    def create_testboard(rows, cols, states: tuple) -> Board:
+        if cols * rows != len(states):
+            log.error("Passed wrong number of arguments")
+            return Board(0, 0, 5, 5, '!')
+        board = Board(0, 0, rows, cols)
+        state = (state for state in states)
+        for row in board.fields:
+            for field in row:
+                field.state = next(state)
+        return board
+
+    return create_testboard
+
 
 class TestModel:
 
@@ -87,7 +102,7 @@ class TestModel:
         basic_model.fields[1][1].state = '3'
         basic_model.fields[0][2].state = '_'
         basic_model.fields[1][2].state = '1'
-        basic_model.get_potential()
+        basic_model.get_potentials()
         assert basic_model.fields[0][0].state == 'pm'
         assert basic_model.fields[1][0].state == 'pm'
 
@@ -142,22 +157,6 @@ class TestField:
                   nbour_s, nbour_se]
         field.neighbours = set(nbours)
         return field, nbours
-
-    @pytest.fixture
-    def custom_board(self):
-
-        def create_testboard(rows, cols, states: tuple) -> Board:
-            if cols * rows != len(states):
-                log.error("Passed wrong number of arguments")
-                return Board(0, 0, 5, 5, '!')
-            board = Board(0, 0, rows, cols)
-            state = (state for state in states)
-            for row in board.fields:
-                for field in row:
-                    field.state = next(state)
-            return board
-
-        return create_testboard
 
     def test_field_init(self, basic_field):
         assert basic_field is not None
@@ -307,3 +306,17 @@ class TestField:
 
         assert len(fields[1][1].get_nbours('m')) == 1
         assert len(fields[2][1].get_nbours('m')) == 1
+
+
+class TestFunctional:
+
+    def test_neighbour_misspoint_as_pot_nums(self, custom_board):
+        board_rows, board_columns = 4, 4
+        states = (
+            '*', '*', '*', '*',
+            '*', '3', 'm', 'm',
+            '*', '3', '3', '3',
+            '1', '2', 'm', '1'
+        )
+        board = custom_board(board_rows, board_columns, states)
+        board.fields[2][1].solve()

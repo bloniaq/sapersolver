@@ -81,13 +81,13 @@ class Board:
                     number_neighbours.add(neighbour)
         return number_neighbours
 
-    def get_potential(self):
+    def get_potentials(self):
         potential_mines = set()
         potential_numbers = set()
         for row in self.fields:
             for field in row:
                 if field.isnumber():
-                    pointed_mines, pointed_numbers = field.point_mines_around()
+                    pointed_mines, pointed_numbers = field.solve()
                     potential_mines |= pointed_mines
                     potential_numbers |= pointed_numbers
         logg.info(f"All potential mines for now: {potential_mines}")
@@ -178,7 +178,7 @@ class Field:
     # POINTING MINES
     ###
 
-    def point_mines_around(self):
+    def solve(self):
         potential_mines = set()
         potential_numbers = set()
         methods = (
