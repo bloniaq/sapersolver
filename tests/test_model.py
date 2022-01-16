@@ -12,10 +12,7 @@ class TestModel:
     def basic_model(self) -> Board:
         TOP = 200
         LEFT = 400
-        model = Board(
-            TOP,
-            LEFT
-        )
+        model = Board(TOP, LEFT)
         return model
 
     def test_model_init(self, basic_model):
@@ -149,11 +146,11 @@ class TestField:
     @pytest.fixture
     def custom_board(self):
 
-        def create_testboard(cols, rows, states: tuple) -> Board:
+        def create_testboard(rows, cols, states: tuple) -> Board:
             if cols * rows != len(states):
                 log.error("Passed wrong number of arguments")
                 return Board(0, 0, 5, 5, '!')
-            board = Board(0, 0, cols, rows)
+            board = Board(0, 0, rows, cols)
             state = (state for state in states)
             for row in board.fields:
                 for field in row:
@@ -203,44 +200,44 @@ class TestField:
             'm', '3', '*',
             'm', '3', '*'
         )
-        fields = custom_board(board_columns, board_rows, states).fields
+        fields = custom_board(board_rows, board_columns, states).fields
 
         assert not fields[1][1].iscomplete()
         assert not fields[2][1].iscomplete()
         assert fields[0][1].iscomplete()
 
     def test_custom_board_fixture(self, custom_board):
-        board_columns, board_rows = 4, 4
+        board_rows, board_columns = 4, 4
         states = (
             '*', '1', '_', '_',
             '*', '2', '1', '2',
             '*', '2', 'm', '2',
             '1', '1', '1', '2'
         )
-        fields = custom_board(board_columns, board_rows, states).fields
+        fields = custom_board(board_rows, board_columns, states).fields
         assert fields[0][0].state == '*'
 
     def test_intersection(self, custom_board):
-        board_columns, board_rows = 4, 4
+        board_rows, board_columns = 4, 4
         states = (
             '*', '1', '_', '_',
             '*', '2', '1', '2',
             '*', '2', 'm', '2',
             '1', '1', '1', '2'
         )
-        fields = custom_board(board_columns, board_rows, states).fields
+        fields = custom_board(board_rows, board_columns, states).fields
         field_1 = fields[0][1]
         field_2 = fields[1][1]
         assert field_1._intersection(field_2) == {fields[0][0], fields[1][0]}
 
     def test_get_nbours(self, custom_board):
-        board_columns, board_rows = 3, 3
+        board_rows, board_columns = 3, 3
         states = (
             '*', '1', '_',
             '*', '2', '1',
             '*', '2', 'm'
         )
-        fields = custom_board(board_columns, board_rows, states).fields
+        fields = custom_board(board_rows, board_columns, states).fields
 
         field = fields[1][1]
         all_neighbours = field.get_nbours()
@@ -261,23 +258,22 @@ class TestField:
             'm', '2',
             '*', '1'
         )
-        fields = custom_board(board_columns, board_rows, states).fields
+        fields = custom_board(board_rows, board_columns, states).fields
 
         assert len(fields[1][1].getcoveredneighbours()) == 2
         assert len(fields[2][1].getcoveredneighbours()) == 1
 
     def test_two_ones_near_border(self, custom_board):
-        board_columns, board_rows = 3, 3
+        board_rows, board_columns = 3, 3
         states = (
             '*', '1', '_',
             '*', '1', '_',
             '*', '2', '_'
         )
-        board = custom_board(board_columns, board_rows, states)
-        board = board.fields
+        fields = custom_board(board_rows, board_columns, states).fields
 
-        checked_field = board[1][1]
-        expected_potential_number = board[2][0]
+        checked_field = fields[1][1]
+        expected_potential_number = fields[2][0]
 
         potential_mines = set()
         potential_numbers = set()
@@ -294,7 +290,7 @@ class TestField:
             'm', '2',
             '*', '1'
         )
-        fields = custom_board(board_columns, board_rows, states).fields
+        fields = custom_board(board_rows, board_columns, states).fields
 
         assert len(fields[1][1].getmineneighbours()) == 1
         assert len(fields[2][1].getmineneighbours()) == 1

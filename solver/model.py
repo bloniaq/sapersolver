@@ -5,11 +5,10 @@ logg = logging.getLogger('solver.c.model')
 
 
 class Board:
-    COLUMNS = 30
     ROWS = 16
+    COLUMNS = 30
 
-    def __init__(self, left, top,
-                 columns=COLUMNS, rows=ROWS, pref_state=None) -> None:
+    def __init__(self, left, top, rows=ROWS, columns=COLUMNS, pref_state=None) -> None:
         self.getneighbours = None
         self.columns = columns
         self.rows = rows
