@@ -320,3 +320,7 @@ class TestFunctional:
         )
         board = custom_board(board_rows, board_columns, states)
         board.fields[1][1].figure_out()
+
+        assert board.fields[0][0].state != 'pn'
+        assert board.fields[0][1].state != 'pn'
+        assert board.fields[0][2].state != 'pn'
