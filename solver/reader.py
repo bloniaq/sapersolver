@@ -4,9 +4,10 @@ import logging
 
 logg = logging.getLogger('solver.c.reader')
 
-MOVE_DURATION = .1
+MOVE_DURATION = .2
 
 class Reader:
+
     IMAGES = {
         'm': 'images/mine.png',
         '1': 'images/one.png',
@@ -16,13 +17,18 @@ class Reader:
         '5': 'images/five.png',
         '6': 'images/six.png',
         '*': 'images/covered.png',
-        '_': 'images/empty.png'
+        '_': 'images/empty.png',
+        'L': 'images/exploded_mine.png'
     }
 
     def __init__(self):
         self.region = self._find_region()
 
     def _find_region(self):
+        """
+        Finds top left corner of actual board (top left corner of 0, 0 field)
+        :return: topleftcorner: pyautogui.Box
+        """
         topleftcorner = pag.locateOnScreen('images/topleftcorner.png')
         logg.debug(f"topleftcorner results: {topleftcorner}")
         if topleftcorner is not None:
@@ -34,17 +40,19 @@ class Reader:
     # EXECUTING METHODS
     ###
 
-    def discover_field(self, field):
-        logg.debug(f"discovering one field: {field}")
+    def uncover_field(self, field):
+        logg.debug(f"Uncovering one field: {field}")
         pag.moveTo(field.x, field.y, duration=MOVE_DURATION)
-        pag.doubleClick(field.x, field.y)
+        if field.state not in ('m', 'pm'):
+            pag.doubleClick(field.x, field.y)
 
-    def discover_around(self, field):
-        logg.debug(f"discovering around field: {field}")
+    def uncover_around_field(self, field):
+        logg.debug(f"Uncovering around field: {field}")
         pag.moveTo(field.x, field.y, duration=MOVE_DURATION)
-        pag.tripleClick(field.x, field.y)
+        if field.state not in ('m', 'pm'):
+            pag.tripleClick(field.x, field.y)
 
-    def mark_mine(self, field):
+    def mark_field_as_mine(self, field):
         """
         WARNING: If window hasn't focus, first click just set the focus,
         but field will be still unmarked as mine.
@@ -55,24 +63,24 @@ class Reader:
         pag.click(field.x, field.y, button='right')
         field.state = 'm'
 
-    def mark_multiple_mines(self, fields_to_mark):
+    def mark_multiple_field_as_mines(self, fields_to_mark):
         for field in fields_to_mark:
-            self.mark_mine(field)
+            self.mark_field_as_mine(field)
 
-    def mouse_clean_pos(self):
+    def park_cursor(self):
         pag.moveTo(40, 10)
         pag.click()
 
-    def uncover_multiple_fields(self, fields_to_uncover):
+    def uncover_around_multiple_fields(self, fields_to_uncover):
         for field in fields_to_uncover:
-            self.discover_around(field)
+            self.uncover_around_field(field)
 
     ###
     # READING METHODS
     ###
 
     def read_whole_board(self, fields):
-        self.mouse_clean_pos()
+        self.park_cursor()
         changes_flag = False
         for row in fields:
             for field in row:
@@ -86,7 +94,9 @@ class Reader:
 
     def update_board(self, fields_to_recognize: set):
         """
-
+        Sends all fields from parameter set to reckognize method, and makes
+        sure, all of recently changed fields neighbours, also are send to
+        reckognize method.
         :param fields_to_recognize: set
         :return: changes_flag: bool
         """
@@ -104,6 +114,9 @@ class Reader:
             for field in fields_to_recognize:
                 current_state = field.state
                 new_state = self._recognize_field(field)
+                if new_state == 'L':
+                    logg.error("WE LOST!")
+                    quit()
                 if new_state != current_state:
                     changes_flag = True
                     field.state = new_state
@@ -118,7 +131,7 @@ class Reader:
         return changes_flag
 
     def _recognize_field(self, field):
-        if field.state != '*' and field.state != 'x':
+        if field.state not in ('*', 'x', 'pn'):
             logg.debug(f"Tried to reckognize {field} but it's already known")
             return field.state
 
@@ -132,6 +145,18 @@ class Reader:
             else:
                 continue
         return 'x'
+
+    def do_we_lost(self):
+        """
+        TODO: It's currently not working properly.
+        :return:
+        """
+        lost_communicate = pag.locateOnScreen('images/lose.png',
+                                              region=(754, 585, 411, 41))
+        if not lost_communicate:
+            return True
+        else:
+            return False
 
 
 
