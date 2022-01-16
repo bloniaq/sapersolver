@@ -168,6 +168,12 @@ class Field:
         intersection = self_covered.intersection(other_field_covered)
         return intersection
 
+    def _difference(self, other_field: 'Field') -> set:
+        self_covered =  self.get_nbours('*')
+        other_field_covered = other_field.get_nbours('*')
+        difference = self_covered.difference(other_field_covered)
+        return difference
+
     ###
     # POINTING MINES
     ###

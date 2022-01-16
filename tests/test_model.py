@@ -221,14 +221,27 @@ class TestField:
         board_rows, board_columns = 4, 4
         states = (
             '*', '1', '_', '_',
-            '*', '2', '1', '2',
-            '*', '2', 'm', '2',
-            '1', '1', '1', '2'
+            '*', '2', '1', '1',
+            '*', '2', 'm', '1',
+            '1', '1', '1', '1'
         )
         fields = custom_board(board_rows, board_columns, states).fields
         field_1 = fields[0][1]
         field_2 = fields[1][1]
         assert field_1._intersection(field_2) == {fields[0][0], fields[1][0]}
+
+    def test_difference(self, custom_board):
+        board_rows, board_columns = 4, 4
+        states = (
+            '*', '1', '_', '_',
+            '*', '2', '1', '1',
+            '*', '2', 'm', '1',
+            '1', '1', '1', '1'
+        )
+        fields = custom_board(board_rows, board_columns, states).fields
+        assert fields[1][1]._difference(fields[0][1]) == {fields[2][0]}
+        assert fields[2][1]._difference(fields[3][1]) == {fields[1][0]}
+        assert fields[1][1]._difference(fields[2][1]) == {fields[0][0]}
 
     def test_get_nbours(self, custom_board):
         board_rows, board_columns = 3, 3
