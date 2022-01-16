@@ -87,7 +87,7 @@ class Board:
         for row in self.fields:
             for field in row:
                 if field.isnumber():
-                    pointed_mines, pointed_numbers = field.solve()
+                    pointed_mines, pointed_numbers = field.figure_out()
                     potential_mines |= pointed_mines
                     potential_numbers |= pointed_numbers
         logg.info(f"All potential mines for now: {potential_mines}")
@@ -178,7 +178,7 @@ class Field:
     # POINTING MINES
     ###
 
-    def solve(self):
+    def figure_out(self):
         potential_mines = set()
         potential_numbers = set()
         methods = (

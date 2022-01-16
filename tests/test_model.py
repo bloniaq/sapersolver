@@ -319,4 +319,4 @@ class TestFunctional:
             '1', '2', 'm', '1'
         )
         board = custom_board(board_rows, board_columns, states)
-        board.fields[2][1].solve()
+        board.fields[1][1].figure_out()
