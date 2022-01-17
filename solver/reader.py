@@ -2,9 +2,10 @@ import pyautogui as pag
 import logging
 
 
-logg = logging.getLogger('solver.c.reader')
+log = logging.getLogger('solver.c.reader')
+log.setLevel(logging.WARNING)
 
-MOVE_DURATION = .2
+MOVE_DURATION = .1
 
 class Reader:
 
@@ -30,7 +31,7 @@ class Reader:
         :return: topleftcorner: pyautogui.Box
         """
         topleftcorner = pag.locateOnScreen('images/topleftcorner.png')
-        logg.debug(f"topleftcorner results: {topleftcorner}")
+        log.debug(f"topleftcorner results: {topleftcorner}")
         if topleftcorner is not None:
             self.left = (topleftcorner[0] + topleftcorner[2] + 5)
             self.top = topleftcorner[1] + topleftcorner[3] + 5
@@ -41,16 +42,21 @@ class Reader:
     ###
 
     def uncover_field(self, field):
-        logg.debug(f"Uncovering one field: {field}")
+        log.debug(f"Uncovering one field: {field}")
         pag.moveTo(field.x, field.y, duration=MOVE_DURATION)
         if field.state not in ('m', 'pm'):
             pag.doubleClick(field.x, field.y)
+        if self._do_we_lost(field):
+            quit()
 
     def uncover_around_field(self, field):
-        logg.debug(f"Uncovering around field: {field}")
+        log.debug(f"Uncovering around field: {field}")
         pag.moveTo(field.x, field.y, duration=MOVE_DURATION)
         if field.state not in ('m', 'pm'):
             pag.tripleClick(field.x, field.y)
+        for n in field.neighbours:
+            if self._do_we_lost(n):
+                quit()
 
     def mark_field_as_mine(self, field):
         """
@@ -59,6 +65,7 @@ class Reader:
         :param field: Field
         :return: None
         """
+        log.debug(f"Marking {field} as mine")
         pag.moveTo(field.x, field.y, duration=MOVE_DURATION)
         pag.click(field.x, field.y, button='right')
         field.state = 'm'
@@ -81,15 +88,16 @@ class Reader:
 
     def read_whole_board(self, fields):
         self.park_cursor()
+        log.info("Reading board")
         changes_flag = False
         for row in fields:
             for field in row:
                 state = self._recognize_field(field)
                 if field.state != state:
                     field.state = state
-                    logg.debug(f'{field} state changed')
+                    log.debug(f'{field} state changed')
                     changes_flag = True
-        logg.info(f'changes flag: {changes_flag}')
+        log.info(f'changes flag: {changes_flag}')
         return changes_flag
 
     def update_board(self, fields_to_recognize: set):
@@ -103,20 +111,18 @@ class Reader:
         changes_flag = False
         fields_recognized = set()
         neighbours = set()
+        log.info("Updateing board")
         for field in fields_to_recognize:
             neighbours |= field.neighbours
-            logg.debug(f"added neighbours of {field} to fields_to_recognized: "
+            log.debug(f"added neighbours of {field} to fields_to_recognized: "
                        f"{field.neighbours}")
         fields_to_recognize |= neighbours
         while fields_to_recognize:
-            logg.debug(f"Fields to reckognized: {fields_to_recognize}")
+            log.debug(f"Fields to reckognized: {fields_to_recognize}")
             next_fields_to_reckognized = set()
             for field in fields_to_recognize:
                 current_state = field.state
                 new_state = self._recognize_field(field)
-                if new_state == 'L':
-                    logg.error("WE LOST!")
-                    quit()
                 if new_state != current_state:
                     changes_flag = True
                     field.state = new_state
@@ -126,13 +132,13 @@ class Reader:
                             next_fields_to_reckognized.add(neighbour)
 
             fields_to_recognize = next_fields_to_reckognized
-        logg.info("Recognition finished")
-        logg.debug(f"Are there changes?\t\t{changes_flag}")
+        log.info("Recognition finished")
+        log.debug(f"Are there changes?\t\t{changes_flag}")
         return changes_flag
 
     def _recognize_field(self, field):
         if field.state not in ('*', 'x', 'pn'):
-            logg.debug(f"Tried to reckognize {field} but it's already known")
+            log.info(f"Tried to reckognize {field} but it's already known")
             return field.state
 
         for key in self.IMAGES:
@@ -140,24 +146,24 @@ class Reader:
                 self.IMAGES[key], region=field.region, grayscale=True,
                 confidence=0.8)
             if result:
-                logg.debug(f"{field} recognized as {key}")
+                log.info(f"{field} recognized as {key}")
                 return key
             else:
                 continue
         return 'x'
 
-    def do_we_lost(self):
+    def _do_we_lost(self, field):
         """
-        TODO: It's currently not working properly.
-        :return:
+        For now it doesn't work if mine is under new window created by
+        Minesweeper application.
+        TODO: Implement checking if lost while window popped up
+        :param field: Field
+        :return: True if game is lost
         """
-        lost_communicate = pag.locateOnScreen('images/lose.png',
-                                              region=(754, 585, 411, 41))
-        if not lost_communicate:
-            return True
-        else:
-            return False
-
-
-
-
+        log.debug("Checking if game isn't lost")
+        result = pag.locateOnScreen(self.IMAGES['L'], region=field.region,
+                                    grayscale=True, confidence=0.8)
+        if result:
+            log.error("WE LOST")
+            log.warning(f"Mine was at {field}")
+        return result
