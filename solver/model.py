@@ -67,19 +67,11 @@ class Board:
         logg.info(f"complete_fields_w_cov_neighbours: {fields_to_click}")
         return fields_to_click
 
-    def get_neighbours(self, fields: set):
+    def get_multiple_nbours(self, fields: set, *filters):
         neighbours = set()
         for field in fields:
-            neighbours.union(field.neighbours)
+            neighbours |= field.get_nbours(filters)
         return neighbours
-
-    def pick_number_neighbours(self, fields: set):
-        number_neighbours = set()
-        for field in fields:
-            for neighbour in field.neighbours:
-                if neighbour.isnumber():
-                    number_neighbours.add(neighbour)
-        return number_neighbours
 
     def get_potentials(self):
         potential_mines = set()
