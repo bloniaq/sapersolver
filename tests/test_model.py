@@ -25,18 +25,15 @@ class TestModel:
 
     @pytest.fixture
     def basic_model(self) -> Board:
-        TOP = 200
-        LEFT = 400
-        model = Board(TOP, LEFT)
-        return model
+        return Board(200, 400)
 
     def test_model_init(self, basic_model):
         assert basic_model is not None
         assert isinstance(basic_model, Board)
 
     def test_dimensions(self, basic_model):
-        assert basic_model.columns == 30
-        assert basic_model.rows == 16
+        assert basic_model.columns == basic_model.COLUMNS
+        assert basic_model.rows == basic_model.ROWS
 
     def test_preffered_state(self):
         board_R = Board(200, 400, pref_state='R')
@@ -50,6 +47,7 @@ class TestModel:
         field = basic_model.fields[row][col]
         assert field.row == row
         assert field.col == col
+        # Assumming that button grid spacing is 51 pixels
         assert field.x == 478
         assert field.y == 576
 
@@ -96,41 +94,6 @@ class TestModel:
             basic_model.fields[15][28]
         }
         assert expected_neighbours == neighbours
-
-    def test_mark_pot_mines_covered_eq_state(self, basic_model):
-        basic_model.fields[0][1].state = '2'
-        basic_model.fields[1][1].state = '3'
-        basic_model.fields[0][2].state = '_'
-        basic_model.fields[1][2].state = '1'
-        basic_model.get_potentials()
-        assert basic_model.fields[0][0].state == 'pm'
-        assert basic_model.fields[1][0].state == 'pm'
-
-    # def test_sets_calculations_1(self, basic_model):
-    #     basic_model.fields[0][1].state = '3'
-    #     basic_model.fields[0][2].state = 'm'
-    #     basic_model.fields[1][1].state = '2'
-    #     basic_model.fields[1][2].state = '1'
-    #     basic_model.fields[2][1].state = '3'
-    #     basic_model.fields[2][2].state = '1'
-    #     basic_model.fields[3][1].state = 'm'
-    #     basic_model.fields[3][2].state = '2'
-    #     basic_model._sets_calculations(basic_model.fields[1][1])
-    #     assert basic_model.fields[3][0].state == 'pm'
-    #     basic_model.fields[3][0].state == '*'
-    #     basic_model._sets_calculations(basic_model.fields[2][1])
-    #     assert basic_model.fields[3][0].state == 'pm'
-
-    # def test_sets_calculations_2(self, basic_model):
-    #     basic_model.fields[1][0].state = 'm'
-    #     basic_model.fields[1][1].state = '2'
-    #     basic_model.fields[1][2].state = '1'
-    #     basic_model.fields[1][3].state = '1'
-    #     basic_model._sets_calculations(basic_model.fields[1][2])
-    #     assert basic_model.fields[0][1].state == 'pf'
-    #     basic_model.fields[0][1].state = '*'
-    #     basic_model._sets_calculations(basic_model.fields[1][3])
-    #     assert basic_model.fields[0][1].state == 'pf'
 
 
 class TestField:
@@ -310,6 +273,19 @@ class TestField:
 
 class TestFunctional:
 
+    def test_mark_pot_mines_covered_eq_state(self, custom_board):
+        board_rows, board_columns = 3, 3
+        states = (
+            '*', '2', '_',
+            '*', '3', '1',
+            '*', '2', 'm'
+        )
+        board = custom_board(board_rows, board_columns, states)
+        board.get_potentials()
+        assert board.fields[0][0].state == 'pm'
+        assert board.fields[1][0].state == 'pm'
+        assert board.fields[2][0].state == 'pn'
+
     def test_neighbour_misspoint_as_pot_nums(self, custom_board):
         board_rows, board_columns = 4, 4
         states = (
@@ -319,8 +295,57 @@ class TestFunctional:
             '1', '2', 'm', '1'
         )
         board = custom_board(board_rows, board_columns, states)
-        board.fields[1][1].figure_out()
+        board.get_potentials()
 
         assert board.fields[0][0].state != 'pn'
         assert board.fields[0][1].state != 'pn'
         assert board.fields[0][2].state != 'pn'
+
+    def test_sets_calculations_1(self, custom_board):
+        board_rows, board_columns = 4, 3
+        states = (
+            '*', '3', 'm',
+            '*', '3', '1',
+            '*', '3', '1',
+            '*', 'm', '1'
+        )
+        board = custom_board(board_rows, board_columns, states)
+        board.get_potentials()
+        assert board.fields[0][0].state == 'pm'
+        assert board.fields[1][0].state == 'pm'
+        assert board.fields[3][0].state == 'pm'
+        assert board.fields[2][0].state == 'pn'
+
+    # TESTS FOR THE FUTURE SOLVED CASE
+    #
+    # def test_sets_calculations_2(self, custom_board):
+    #     board_rows, board_columns = 6, 5
+    #     states = (
+    #         '*', '2', '1', '_', '_',
+    #         '*', 'm', '1', '_', '_',
+    #         '*', '3', '1', '_', '_',
+    #         '*', '2', '1', '*', '_',
+    #         '*', '2', 'm', '3', '2',
+    #         '*', '*', '3', 'm', 'm'
+    #     )
+    #     board = custom_board(board_rows, board_columns, states)
+    #     board.get_potentials()
+    #     assert board.fields[1][0].state == 'pm'
+    #     assert board.fields[4][0].state == 'pn'
+
+    def test_neighbour_numbers_iteration(self, custom_board):
+        board_rows, board_columns = 5, 4
+        states = (
+            '*', '*', '*', '*',
+            '*', 'm', '2', '*',
+            'm', '3', '3', '*',
+            'm', '3', '3', '*',
+            '1', '2', 'm', '*'
+        )
+        board = custom_board(board_rows, board_columns, states)
+        board.get_potentials()
+        assert board.fields[1][0].state == 'pn'
+        assert board.fields[0][1].state == 'pn'
+        assert board.fields[0][2].state == 'pn'
+        assert board.fields[0][3].state == 'pn'
+        assert board.fields[3][3].state == 'pm'
