@@ -70,6 +70,14 @@ class Reader:
         pag.click(field.x, field.y, button='right')
         field.state = 'm'
 
+    def uncover_multiple_fields(self, fields_to_uncover):
+        for field in fields_to_uncover:
+            self.uncover_field(field)
+
+    def uncover_around_multiple_fields(self, fields_to_uncover_around):
+        for field in fields_to_uncover_around:
+            self.uncover_around_field(field)
+
     def mark_multiple_field_as_mines(self, fields_to_mark):
         for field in fields_to_mark:
             self.mark_field_as_mine(field)
@@ -77,10 +85,6 @@ class Reader:
     def park_cursor(self):
         pag.moveTo(40, 10)
         pag.click()
-
-    def uncover_around_multiple_fields(self, fields_to_uncover):
-        for field in fields_to_uncover:
-            self.uncover_around_field(field)
 
     ###
     # READING METHODS
@@ -115,7 +119,7 @@ class Reader:
         for field in fields_to_recognize:
             neighbours |= field.neighbours
             log.debug(f"added neighbours of {field} to fields_to_recognized: "
-                       f"{field.neighbours}")
+                      f"{field.neighbours}")
         fields_to_recognize |= neighbours
         while fields_to_recognize:
             log.debug(f"Fields to reckognized: {fields_to_recognize}")
