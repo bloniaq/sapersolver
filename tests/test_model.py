@@ -3,7 +3,8 @@ import pytest
 import logging
 
 
-log = logging.getLogger('solver.tests')
+log = logging.getLogger('solver.tests.test_model')
+
 
 @pytest.fixture
 def custom_board():
@@ -133,27 +134,27 @@ class TestField:
 
     def test_isnumber(self, basic_field):
         basic_field.state = '1'
-        assert basic_field.isnumber()
+        assert basic_field.is_number()
         basic_field.state = '2'
-        assert basic_field.isnumber()
+        assert basic_field.is_number()
         basic_field.state = '3'
-        assert basic_field.isnumber()
+        assert basic_field.is_number()
         basic_field.state = '4'
-        assert basic_field.isnumber()
+        assert basic_field.is_number()
         basic_field.state = '5'
-        assert basic_field.isnumber()
+        assert basic_field.is_number()
         basic_field.state = '6'
-        assert basic_field.isnumber()
+        assert basic_field.is_number()
         basic_field.state = '7'
-        assert basic_field.isnumber()
+        assert basic_field.is_number()
         basic_field.state = '8'
-        assert basic_field.isnumber()
+        assert basic_field.is_number()
         basic_field.state = '*'
-        assert not basic_field.isnumber()
+        assert not basic_field.is_number()
         basic_field.state = 'm'
-        assert not basic_field.isnumber()
+        assert not basic_field.is_number()
         basic_field.state = 'e'
-        assert not basic_field.isnumber()
+        assert not basic_field.is_number()
 
     def test_iscomplete(self, custom_board):
         board_rows, board_columns = 3, 3
@@ -164,9 +165,9 @@ class TestField:
         )
         fields = custom_board(board_rows, board_columns, states).fields
 
-        assert not fields[1][1].iscomplete()
-        assert not fields[2][1].iscomplete()
-        assert fields[0][1].iscomplete()
+        assert not fields[1][1].is_complete()
+        assert not fields[2][1].is_complete()
+        assert fields[0][1].is_complete()
 
     def test_custom_board_fixture(self, custom_board):
         board_rows, board_columns = 4, 4
@@ -190,7 +191,7 @@ class TestField:
         fields = custom_board(board_rows, board_columns, states).fields
         field_1 = fields[0][1]
         field_2 = fields[1][1]
-        assert field_1._intersection(field_2) == {fields[0][0], fields[1][0]}
+        assert field_1.intersection_with(field_2) == {fields[0][0], fields[1][0]}
 
     def test_difference(self, custom_board):
         board_rows, board_columns = 4, 4
@@ -201,9 +202,9 @@ class TestField:
             '1', '1', '1', '1'
         )
         fields = custom_board(board_rows, board_columns, states).fields
-        assert fields[1][1]._difference(fields[0][1]) == {fields[2][0]}
-        assert fields[2][1]._difference(fields[3][1]) == {fields[1][0]}
-        assert fields[1][1]._difference(fields[2][1]) == {fields[0][0]}
+        assert fields[1][1].difference_with(fields[0][1]) == {fields[2][0]}
+        assert fields[2][1].difference_with(fields[3][1]) == {fields[1][0]}
+        assert fields[1][1].difference_with(fields[2][1]) == {fields[0][0]}
 
     def test_get_nbours(self, custom_board):
         board_rows, board_columns = 3, 3
@@ -238,26 +239,6 @@ class TestField:
         assert len(fields[1][1].get_nbours('*')) == 2
         assert len(fields[2][1].get_nbours('*')) == 1
 
-    def test_two_ones_near_border(self, custom_board):
-        board_rows, board_columns = 3, 3
-        states = (
-            '*', '1', '_',
-            '*', '1', '_',
-            '*', '2', '_'
-        )
-        fields = custom_board(board_rows, board_columns, states).fields
-
-        checked_field = fields[1][1]
-        expected_potential_number = fields[2][0]
-
-        potential_mines = set()
-        potential_numbers = set()
-        potential_mines, potential_numbers =\
-            checked_field._check_whats_with_neighbours(
-                potential_mines, potential_numbers)
-        assert not potential_mines
-        assert expected_potential_number in potential_numbers
-
     def test_mineneighbours(self, custom_board):
         board_rows, board_columns = 3, 2
         states = (
@@ -270,8 +251,197 @@ class TestField:
         assert len(fields[1][1].get_nbours('m')) == 1
         assert len(fields[2][1].get_nbours('m')) == 1
 
+    def test_mark_potentials(self, custom_board):
+        board_rows, board_columns = 4, 4
+        states = (
+            '*', '*', '1', '_',
+            '*', '*', '2', '1',
+            '*', '*', '*', '2',
+            '*', '*', '*', '1'
+        )
+        board = custom_board(board_rows, board_columns, states)
+        fieldset = set()
+        for row in board.fields:
+            for field in row:
+                fieldset.add(field)
+        board.fields[0][0]._mark_potentials(fieldset, 'pm')
+        assert board.fields[0][0].state == 'pm'
+        assert board.fields[0][1].state == 'pm'
+        assert board.fields[0][2].state == '1'
+        assert board.fields[0][3].state == '_'
+        assert board.fields[1][0].state == 'pm'
+        assert board.fields[1][1].state == 'pm'
+        assert board.fields[1][2].state == '2'
+        assert board.fields[1][3].state == '1'
+        assert board.fields[2][0].state == 'pm'
+        assert board.fields[2][1].state == 'pm'
+        assert board.fields[2][2].state == 'pm'
+        assert board.fields[2][3].state == '2'
+        assert board.fields[3][0].state == 'pm'
+        assert board.fields[3][1].state == 'pm'
+        assert board.fields[3][2].state == 'pm'
+        assert board.fields[3][3].state == '1'
+
+        board.fields[1][1]._mark_potentials(fieldset, 'pn')
+        assert board.fields[0][0].state == 'pm'
+        assert board.fields[0][1].state == 'pm'
+        assert board.fields[0][2].state == '1'
+        assert board.fields[0][3].state == '_'
+        assert board.fields[1][0].state == 'pm'
+        assert board.fields[1][1].state == 'pm'
+        assert board.fields[1][2].state == '2'
+        assert board.fields[1][3].state == '1'
+        assert board.fields[2][0].state == 'pm'
+        assert board.fields[2][1].state == 'pm'
+        assert board.fields[2][2].state == 'pm'
+        assert board.fields[2][3].state == '2'
+        assert board.fields[3][0].state == 'pm'
+        assert board.fields[3][1].state == 'pm'
+        assert board.fields[3][2].state == 'pm'
+        assert board.fields[3][3].state == '1'
+
+        board = custom_board(board_rows, board_columns, states)
+        fieldset = set()
+        for row in board.fields:
+            for field in row:
+                fieldset.add(field)
+        board.fields[2][2]._mark_potentials(fieldset, 'pn')
+        assert board.fields[0][0].state == 'pn'
+        assert board.fields[0][1].state == 'pn'
+        assert board.fields[0][2].state == '1'
+        assert board.fields[0][3].state == '_'
+        assert board.fields[1][0].state == 'pn'
+        assert board.fields[1][1].state == 'pn'
+        assert board.fields[1][2].state == '2'
+        assert board.fields[1][3].state == '1'
+        assert board.fields[2][0].state == 'pn'
+        assert board.fields[2][1].state == 'pn'
+        assert board.fields[2][2].state == 'pn'
+        assert board.fields[2][3].state == '2'
+        assert board.fields[3][0].state == 'pn'
+        assert board.fields[3][1].state == 'pn'
+        assert board.fields[3][2].state == 'pn'
+        assert board.fields[3][3].state == '1'
+
+    def test_mines_left(self, custom_board):
+        custom_rows, custom_columns = 3, 3
+        states = (
+            '2', '*', '*',
+            'm', '*', '3',
+            '3', '*', '*'
+        )
+        fields = custom_board(custom_rows, custom_columns, states).fields
+        assert fields[0][0].m_left() == 1
+        assert fields[2][0].m_left() == 2
+        assert fields[1][2].m_left() == 3
+
 
 class TestFunctional:
+
+    def test_mark_obvious_mines(self, custom_board):
+        custom_rows, custom_columns = 5, 5
+        states = (
+            '*', '1', '1', '*', '*',
+            '1', '1', '1', '2', '2',
+            '2', '2', '2', '_', '_',
+            '*', '*', '2', '1', '1',
+            '3', '*', '2', '1', '*'
+        )
+        fields = custom_board(custom_rows, custom_columns, states).fields
+        fields[1][0].mark_obvious_mines()
+        assert fields[0][0].state == 'pm'
+        fields[1][3].mark_obvious_mines()
+        assert fields[0][3].state == 'pm'
+        assert fields[0][4].state == 'pm'
+
+    def test_iterate_over_num_neighbours(self, custom_board):
+        custom_rows, custom_columns = 7, 7
+        states = (
+            '*', '*', '*', '*', '*', '*', '*',
+            '1', '1', '1', '1', '1', '1', '*',
+            '_', '_', '_', '_', '_', '1', '*',
+            '1', '2', '2', '1', '_', '1', '*',
+            '*', '*', '*', '1', '_', '1', '*',
+            '*', '*', '*', '3', '2', '1', '*',
+            '*', '*', '*', '*', '*', '*', '*'
+        )
+        fields = custom_board(custom_rows, custom_columns, states).fields
+        fields[1][1].iterate_over_num_neighbours()
+        assert fields[0][2].state == 'pn'
+        fields[3][1].iterate_over_num_neighbours()
+        assert fields[4][2].state == 'pm'
+        fields[5][4].iterate_over_num_neighbours()
+        assert fields[6][3].state == 'pm'
+        assert fields[4][6].state == 'pn'
+        assert fields[5][6].state == 'pn'
+        assert fields[6][6].state == 'pn'
+
+    def test_few_ones_in_line(self, custom_board):
+        board_rows, board_columns = 4, 3
+        states = (
+            '*', '1', '_',
+            '*', '1', '_',
+            '*', '1', '_',
+            '*', '1', '_'
+        )
+        #   '*', '1', '_',
+        #   '*', '1', '_',
+        #   'n', '1', '_',
+        #   '*', '1', '_'
+        board = custom_board(board_rows, board_columns, states)
+
+        board.fields[1][1].iterate_over_num_neighbours()
+        assert board.fields[2][0].state == 'pn'
+
+    def test_iterate_over_higher_num_neighbours(self, custom_board):
+        custom_rows, custom_columns = 7, 7
+        states = (
+            '*', '*', '*', '*', '*', '*', '*',
+            '*', '3', '4', 'm', '*', '*', '*',
+            '*', '*', '1', '1', '*', '*', '*',
+            '*', '*', '*', '*', '*', '*', '*',
+            '*', '*', '*', 'm', '*', '*', '*',
+            '*', '*', 'm', '3', '4', '2', '*',
+            '*', '*', '*', 'm', '*', '*', '*'
+        )
+        #   '*', 'M', 'M', 'M', '*', '*', '*',
+        #   '*', '3', '4', 'm', 'n', '*', '*',
+        #   '*', 'n', '1', '1', 'n', '*', '*',
+        #   '*', 'n', 'n', 'n', 'n', '*', '*',
+        #   '*', '*', 'n', 'm', 'n', 'M', 'n',
+        #   '*', '*', 'm', '3', '4', '2', 'n',
+        #   '*', '*', 'n', 'm', 'n', 'M', 'n'
+        board = custom_board(custom_rows, custom_columns, states)
+        fields = board.fields
+        pot_mines, pot_numbers = board.get_potentials()
+        assert fields[0][0].state == '*'
+        assert fields[0][1] in pot_mines
+        assert fields[0][2] in pot_mines
+        assert fields[0][3] in pot_mines
+
+        assert fields[1][0].state == '*'
+        assert fields[1][4] in pot_numbers
+
+        assert fields[2][0].state == '*'
+        assert fields[2][1] in pot_numbers
+        assert fields[2][4] in pot_numbers
+
+        assert fields[3][1] in pot_numbers
+        assert fields[3][2] in pot_numbers
+        assert fields[3][3] in pot_numbers
+        assert fields[3][4] in pot_numbers
+
+        assert fields[4][2] in pot_numbers
+        assert fields[4][4] in pot_numbers
+        assert fields[4][5] in pot_mines
+        assert fields[4][6] in pot_numbers
+
+        assert fields[5][6] in pot_numbers
+
+        assert fields[6][2] in pot_numbers
+        assert fields[6][4] in pot_numbers
+        assert fields[6][5] in pot_mines
+        assert fields[6][6] in pot_numbers
 
     def test_mark_pot_mines_covered_eq_state(self, custom_board):
         board_rows, board_columns = 3, 3
@@ -280,26 +450,35 @@ class TestFunctional:
             '*', '3', '1',
             '*', '2', 'm'
         )
+        #   'M', '2', '_',
+        #   'M', '3', '1',
+        #   'n', '2', 'm'
         board = custom_board(board_rows, board_columns, states)
-        board.get_potentials()
-        assert board.fields[0][0].state == 'pm'
-        assert board.fields[1][0].state == 'pm'
-        assert board.fields[2][0].state == 'pn'
+        pot_mines, pot_numbers = board.get_potentials()
+        assert board.fields[0][0] in pot_mines
+        assert board.fields[1][0] in pot_mines
+        assert board.fields[2][0] in pot_numbers
 
     def test_neighbour_misspoint_as_pot_nums(self, custom_board):
         board_rows, board_columns = 4, 4
         states = (
             '*', '*', '*', '*',
             '*', '3', 'm', 'm',
-            '*', '3', '3', '3',
+            '*', '4', '3', '3',
             '1', '2', 'm', '1'
         )
+        #   'n', 'n', 'n', '*',
+        #   'M', '3', 'm', 'm',
+        #   'M', '4', '3', '3',
+        #   '1', '2', 'm', '1'
         board = custom_board(board_rows, board_columns, states)
-        board.get_potentials()
+        pot_mines, pot_numbers = board.get_potentials()
 
-        assert board.fields[0][0].state != 'pn'
-        assert board.fields[0][1].state != 'pn'
-        assert board.fields[0][2].state != 'pn'
+        assert board.fields[0][0] in pot_numbers
+        assert board.fields[0][1] in pot_numbers
+        assert board.fields[0][2] in pot_numbers
+        assert board.fields[1][0] in pot_mines
+        assert board.fields[2][0] in pot_mines
 
     def test_sets_calculations_1(self, custom_board):
         board_rows, board_columns = 4, 3
@@ -309,29 +488,17 @@ class TestFunctional:
             '*', '3', '1',
             '*', 'm', '1'
         )
+        #   'M', '3', 'm',
+        #   'M', '3', '1',
+        #   'n', '3', '1',
+        #   'M', 'm', '1'
         board = custom_board(board_rows, board_columns, states)
-        board.get_potentials()
-        assert board.fields[0][0].state == 'pm'
-        assert board.fields[1][0].state == 'pm'
-        assert board.fields[3][0].state == 'pm'
-        assert board.fields[2][0].state == 'pn'
+        pot_mines, pot_numbers = board.get_potentials()
 
-    # TESTS FOR THE FUTURE SOLVED CASE
-    #
-    # def test_sets_calculations_2(self, custom_board):
-    #     board_rows, board_columns = 6, 5
-    #     states = (
-    #         '*', '2', '1', '_', '_',
-    #         '*', 'm', '1', '_', '_',
-    #         '*', '3', '1', '_', '_',
-    #         '*', '2', '1', '*', '_',
-    #         '*', '2', 'm', '3', '2',
-    #         '*', '*', '3', 'm', 'm'
-    #     )
-    #     board = custom_board(board_rows, board_columns, states)
-    #     board.get_potentials()
-    #     assert board.fields[1][0].state == 'pm'
-    #     assert board.fields[4][0].state == 'pn'
+        assert board.fields[0][0] in pot_mines
+        assert board.fields[1][0] in pot_mines
+        assert board.fields[3][0] in pot_mines
+        assert board.fields[2][0] in pot_numbers
 
     def test_neighbour_numbers_iteration(self, custom_board):
         board_rows, board_columns = 5, 4
@@ -342,10 +509,104 @@ class TestFunctional:
             'm', '3', '3', '*',
             '1', '2', 'm', '*'
         )
+        #   '*', 'n', 'n', 'n',
+        #   'n', 'm', '2', '*',
+        #   'm', '3', '3', '*',
+        #   'm', '3', '3', 'm',
+        #   '1', '2', 'm', '*'
         board = custom_board(board_rows, board_columns, states)
-        board.get_potentials()
-        assert board.fields[1][0].state == 'pn'
-        assert board.fields[0][1].state == 'pn'
-        assert board.fields[0][2].state == 'pn'
-        assert board.fields[0][3].state == 'pn'
-        assert board.fields[3][3].state == 'pm'
+        pot_mines, pot_numbers = board.get_potentials()
+
+        assert board.fields[0][0].state == '*'
+        assert board.fields[0][1] in pot_numbers
+        assert board.fields[0][2] in pot_numbers
+        assert board.fields[0][3] in pot_numbers
+        assert board.fields[1][0] in pot_numbers
+        assert board.fields[3][3] in pot_mines
+
+    def test_ones_mark_pn_hastily(self, custom_board):
+        board_rows, board_columns = 6, 6
+        states = (
+            '*', '*', '*', '*', '*', '*',
+            '*', '4', '1', '1', '1', '*',
+            '*', '2', '_', '_', '2', '*',
+            '*', '1', '_', '_', '1', '*',
+            '*', '1', '1', '_', '1', '1',
+            '*', '*', '1', '_', '_', '_'
+        )
+        #   'm', 'n', 'm', 'n', 'n', 'n',
+        #   'm', '4', '1', '1', '1', 'm',
+        #   'm', '2', '_', '_', '2', 'n',
+        #   'n', '1', '_', '_', '1', 'm',
+        #   'n', '1', '1', '_', '1', '1',
+        #   'n', 'm', '1', '_', '_', '_'
+
+        board = custom_board(board_rows, board_columns, states)
+        pot_mines, pot_numbers = board.get_potentials()
+
+        assert board.fields[0][0] in pot_mines
+        assert board.fields[0][1] in pot_numbers
+        assert board.fields[0][2] in pot_mines
+        assert board.fields[0][3] in pot_numbers
+        assert board.fields[0][4] in pot_numbers
+        assert board.fields[0][5] in pot_numbers
+
+        assert board.fields[1][0] in pot_mines
+        assert board.fields[1][5] in pot_mines
+
+        assert board.fields[2][0] in pot_mines
+        assert board.fields[2][5] in pot_numbers
+
+        assert board.fields[3][0] in pot_numbers
+        assert board.fields[3][5] in pot_mines
+
+        assert board.fields[4][0] in pot_numbers
+
+        assert board.fields[5][0] in pot_numbers
+        assert board.fields[5][1] in pot_mines
+
+    def test_two_ones_near_border(self, custom_board):
+        board_rows, board_columns = 3, 3
+        states = (
+            '*', '1', '_',
+            '*', '1', '_',
+            '*', '1', '_'
+        )
+        #   'n', '1', '_',
+        #   'm', '1', '_',
+        #   'n', '1', '_'
+        board = custom_board(board_rows, board_columns, states)
+
+        pot_mines, pot_numbers = board.get_potentials()
+
+        assert board.fields[0][0] in pot_numbers
+        assert board.fields[1][0] in pot_mines
+        assert board.fields[2][0] in pot_numbers
+
+    def test_sets_calculations_2(self, custom_board):
+        board_rows, board_columns = 6, 5
+        states = (
+            '*', '2', '1', '_', '_',
+            '*', 'm', '1', '_', '_',
+            '*', '3', '1', '_', '_',
+            '*', '2', '1', '*', '_',
+            '*', '2', 'm', '3', '2',
+            '*', '*', '3', 'm', 'm'
+        )
+        #   'n', '2', '1', '_', '_',
+        #   'm', 'm', '1', '_', '_',
+        #   'm', '3', '1', '_', '_',
+        #   'n', '2', '1', 'n', '_',
+        #   'n', '2', 'm', '3', '2',
+        #   'n', 'm', '3', 'm', 'm'
+        board = custom_board(board_rows, board_columns, states)
+        pot_mines, pot_numbers = board.get_potentials()
+
+        assert board.fields[0][0] in pot_numbers
+        assert board.fields[1][0] in pot_mines
+        assert board.fields[2][0] in pot_mines
+        assert board.fields[3][0] in pot_numbers
+        assert board.fields[3][3] in pot_numbers
+        assert board.fields[4][0] in pot_numbers
+        assert board.fields[5][0] in pot_numbers
+        assert board.fields[5][1] in pot_mines
