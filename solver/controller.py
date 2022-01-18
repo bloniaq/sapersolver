@@ -4,7 +4,7 @@ from solver.reader import Reader
 from solver.model import Board
 import logging
 
-logg = logging.getLogger('solver.c')
+log = logging.getLogger('solver.c')
 
 # Start in [0][0] Field
 DEBUG_MODE = False
@@ -17,57 +17,51 @@ class Controller:
         if self.reader.region is not None:
 
             self.model = Board(self.reader.left, self.reader.top)
-            logg.info('app initialized successfully')
-            logg.debug(f"board top left corner: X:{self.reader.left} Y:{self.reader.top}")
+            log.info('app initialized successfully')
+            log.debug(f"board top left corner: X:{self.reader.left} Y:{self.reader.top}")
         else:
-            logg.error('Board not found')
+            log.error('Board not found')
             return
 
         if not board_clear and not DEBUG_MODE:
             self.reader.read_whole_board(self.model.fields)
         self._start_game()
-        logg.info("Game started")
+        log.info("Game started")
         self.solve()
 
     def solve(self):
-        logg.info("Starting solving")
+        log.info("Starting solving")
         i_know_what_to_do = True
         while i_know_what_to_do:
-            logg.info("Started solving loop")
-            fields_to_uncover = set()
+            log.info("Started solving loop")
 
-            potential_mines, potential_numbers, neighbours_of_mines \
-                = self.model.get_potentials()
-            self.reader.mark_multiple_field_as_mines(potential_mines)
-            fields_to_uncover |= neighbours_of_mines
-            logg.debug(f"Neighbours of mines: {neighbours_of_mines}")
-            logg.debug(f"Potential numbers: {potential_numbers}")
-            fields_to_uncover |= potential_numbers
-            fields_to_uncover |= self.model.get_complete_fields_w_cov_neighbours()
-            self.reader.uncover_around_multiple_fields(fields_to_uncover)
+            mines_to_mark, fields_to_uncover = self.model.get_potentials()
 
-            logg.info("Going to update Board")
+            self.reader.mark_multiple_field_as_mines(mines_to_mark)
+            self.reader.uncover_multiple_fields(fields_to_uncover)
+
+            log.debug("Going to update Board")
             changes = self.reader.update_board(fields_to_uncover)
+
+            # TODO: Is second condition really needed?
+            #       bug 001 occured without second condition - was it matter?
             if not changes and not self.model.get_complete_fields_w_cov_neighbours():
                 i_know_what_to_do = False
-            self.model.print_board()
-            # if self.reader.do_we_lost():
-            #     i_know_what_to_do = False
-            #     logg.error("WE LOST!")
-        logg.warning("I don't know what to do")
+            print(self.model.get_board_string())
+        log.warning("I don't know what to do")
 
     def _start_game(self):
-        logg.debug("Starting game")
+        log.info("Starting game")
         for row in self.model.fields:
             for field in row:
                 if field.state != '*':
-                    logg.info("Game already started")
+                    log.warning("Game already started")
                     return
 
         starting_field = self._pick_start_field()
         self.reader.uncover_field(starting_field)
+        log.info(f"Started new game at {starting_field}")
         self.reader.update_board({starting_field})
-        logg.debug(f"Started new game at {starting_field}")
 
     def _pick_start_field(self):
         if not DEBUG_MODE:
