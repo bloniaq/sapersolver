@@ -1,7 +1,11 @@
 import logging
+from solver.exceptions import *
+
+log = logging.getLogger('solver.c.model')
 
 
-logg = logging.getLogger('solver.c.model')
+# TODO: Change logging level before merge to dev
+# log.setLevel(logging.warning)
 
 
 class Board:
@@ -9,7 +13,6 @@ class Board:
     COLUMNS = 30
 
     def __init__(self, left, top, rows=ROWS, columns=COLUMNS, pref_state=None) -> None:
-        self.getneighbours = None
         self.columns = columns
         self.rows = rows
         self._init_fields(left, top, pref_state)
@@ -17,9 +20,10 @@ class Board:
 
     def _init_fields(self, left, top, preferred_state=None):
         self.fields = []
-        logg.debug(f"init fields parameters vals: left: {left}, top: {top}")
+        self.fieldset = set()
+        log.debug(f"init fields parameters values: left: {left}, top: {top}")
 
-        # adjustment to center of minesweeper field button
+        # Adjustment to center of minesweeper field button
         x = first_row_x = left + 23
         y = top + 23
 
@@ -31,20 +35,27 @@ class Board:
                 else:
                     field = Field(row, col, x, y, preferred_state)
                 row_list.append(field)
+                self.fieldset.add(field)
                 # 51 is width of button in pixels
                 x += 51
             x = first_row_x
             y += 51
             self.fields.append(row_list)
 
-    def print_board(self):
-        board = ''
+    def get_board_string(self):
+        """
+        Create string to show current board state in command line
+        :return:
+            board
+                a prepared string
+        """
+        board = '\n'
         for row in self.fields:
             for field in row:
-                board += field.state + ' '
+                board += field.state + '\t'
             board += '\n'
 
-        print(board)
+        return board
 
     def _bind_neighbours(self):
         for row in self.fields:
@@ -62,34 +73,39 @@ class Board:
         fields_to_click = set()
         for row in self.fields:
             for field in row:
-                if field.iscomplete() and field.get_nbours('*'):
+                if field.is_complete() and field.get_nbours('*'):
+                    field.state = 'pn'
                     fields_to_click.add(field)
-        logg.info(f"complete_fields_w_cov_neighbours: {fields_to_click}")
+        log.info(f"complete_fields_w_cov_neighbours: {fields_to_click}")
         return fields_to_click
 
-    def get_multiple_nbours(self, fields: set, *filters):
-        neighbours = set()
-        for field in fields:
-            neighbours |= field.get_nbours(filters)
-        return neighbours
-
     def get_potentials(self):
-        potential_mines = set()
-        potential_numbers = set()
-        for row in self.fields:
-            for field in row:
-                if field.isnumber():
-                    pointed_mines, pointed_numbers = field.figure_out()
-                    potential_mines |= pointed_mines
-                    potential_numbers |= pointed_numbers
-        logg.info(f"All potential mines for now: {potential_mines}")
-        their_complete_number_nbrs = set()
-        for mine in potential_mines:
-            for n in mine.neighbours:
-                if n.isnumber() and n.iscomplete():
-                    their_complete_number_nbrs.add(n)
-        logg.info(f"Neighbour numbers of mines: {their_complete_number_nbrs}")
-        return potential_mines, potential_numbers, their_complete_number_nbrs
+        """
+        Marks fields recognized as potential mines and safe for uncover
+        (potential numbers).
+        :return:
+        """
+        number_fields = {field for field in self.fieldset if field.is_number()}
+
+        log.info("Marking obvious mines ")
+        for field in number_fields:
+            field.mark_obvious_mines()
+
+        log.info("Iterating over numeric neighbours of numeric fields")
+        for field in number_fields:
+            field.iterate_over_num_neighbours()
+
+        pot_mines = {field for field in self.fieldset if field.state == 'pm'}
+
+        pot_completes = {field for field in self.fieldset if field.is_complete()}
+        for field in pot_completes:
+            field._mark_potentials(field.get_nbours('*'), 'pn')
+
+        pot_numbers = {field for field in self.fieldset if field.state == 'pn'}
+
+        log.debug(self.get_board_string())
+
+        return pot_mines, pot_numbers
 
 
 class Field:
@@ -110,32 +126,44 @@ class Field:
         self.region = self._get_region()
 
     def __repr__(self):
-        return f'Field S:{self.state.upper()} C:{self.col}, R:{self.row}'
+        return f'Field = {self.state.upper()} | r:{self.row}, c:{self.col}'
 
     def _get_region(self):
         x = self.x - 20
         y = self.y - 20
         width = 40
         length = 40
-        return (x, y, width, length)
+        return x, y, width, length
 
-    def isnumber(self):
-        if self.state > '0' and self.state < '9':
-            return True
-        else:
-            return False
+    ###
+    # PRINTING METHODS
+    ###
 
-    def iscomplete(self):
-        if not self.isnumber():
-            return False
-        mine_neighbours = 0
+    def _current_neighbourhood_string(self):
+        n_nw = self._pick_rel_neighbour(-1, -1)
+        n_n = self._pick_rel_neighbour(-1, 0)
+        n_ne = self._pick_rel_neighbour(-1, 1)
+        n_w = self._pick_rel_neighbour(0, -1)
+        n_e = self._pick_rel_neighbour(0, 1)
+        n_sw = self._pick_rel_neighbour(1, -1)
+        n_s = self._pick_rel_neighbour(1, 0)
+        n_se = self._pick_rel_neighbour(1, 1)
+        board = f"{n_nw.state}\t {n_n.state}\t{n_ne.state}\n" \
+                f"{n_w.state}\t#{self.state}#\t{n_e.state}\n" \
+                f"{n_sw.state}\t {n_s.state}\t{n_se.state}"
+        return board
+
+    def _pick_rel_neighbour(self, row_offset, col_offset):
         for n in self.neighbours:
-            if n.state in ('m', 'pm'):
-                mine_neighbours += 1
-        if mine_neighbours == int(self.state):
-            return True
-        else:
-            return False
+            if n.row == self.row + row_offset and \
+                    n.col == self.col + col_offset:
+                return n
+        return Field(self.row + row_offset, self.col + col_offset,
+                     100, 100, 'X')
+
+    ###
+    # READING FIELD METHODS
+    ###
 
     def get_nbours(self, *args):
         neighbours = set()
@@ -152,97 +180,157 @@ class Field:
             neighbours |= {nbour for nbour in self.neighbours if nbour.state == arg}
         return neighbours
 
-    def _intersection(self, other_field: 'Field') -> set:
+    def m_left(self):
+        mines_left = int(self.state) - len(self.get_nbours('m', 'pm'))
+        if mines_left < 0:
+            raise NegativeMinesLeftCountError(self,
+                                              self._current_neighbourhood_string())
+        return mines_left
+
+    def is_number(self):
+        if '0' < self.state < '9':
+            return True
+        else:
+            return False
+
+    def is_complete(self):
+        if not self.is_number():
+            return False
+        if self.state == 'pn':
+            return False
+        mine_neighbours = 0
+        for n in self.neighbours:
+            if n.state in ('m', 'pm'):
+                mine_neighbours += 1
+        if mine_neighbours == int(self.state):
+            return True
+        else:
+            return False
+
+    def _intersection_with(self, other_field: 'Field') -> set:
         self_covered = self.get_nbours('*')
         other_field_covered = other_field.get_nbours('*')
-        logging.debug(f'self_covered: {self_covered}')
-        logging.debug(f'other_field_covered: {other_field_covered}')
         intersection = self_covered.intersection(other_field_covered)
+        log.debug(f"    Intersection: {len(intersection)} {intersection}")
         return intersection
 
-    def _difference(self, other_field: 'Field') -> set:
-        self_covered =  self.get_nbours('*')
+    def _difference_with(self, other_field: 'Field') -> set:
+        self_covered = self.get_nbours('*')
         other_field_covered = other_field.get_nbours('*')
         difference = self_covered.difference(other_field_covered)
+        log.debug(f"    Difference: {difference} [[[{self} - {other_field}]]]")
         return difference
+
+    def _analyze_pair_with(self, n):
+        """
+        Returns properties of a self and n pair
+        :param n: Field
+        :return:
+            intersection : set
+                a common set of (*) fields
+            self_diff_n : set
+                a set of neighbours of self, which aren't neighbour of n
+            n_diff_self : set
+                a set of neighbours of n, which aren't neighbour of self
+            min_mines_num : int
+                a minimal number of mines in intersection
+            max_mines_num : int
+                a maximym number of mines in intersection
+            exact : int
+                if minimum and maximum number of mines in intersection are
+                equal - it's exact number of mines in intersection; otherwise
+                it's None
+        """
+        log.debug(f"SELF NEIGHBOURHOOD:\n"
+                  f"{self._current_neighbourhood_string()}")
+        log.debug(f"N NEIGHBOURHOOD:\n"
+                  f"{n._current_neighbourhood_string()}")
+        intersection = self._intersection_with(n)
+        self_diff_n = self._difference_with(n)
+        n_diff_self = n._difference_with(self)
+
+        min_mines_num = max(
+            self.m_left() - len(self_diff_n),
+            n.m_left() - len(n_diff_self),
+            0
+        )
+        max_mines_num = min(
+            len(intersection),
+            n.m_left(),
+            self.m_left()
+        )
+        exact = None
+        if min_mines_num == max_mines_num:
+            exact = min_mines_num
+
+        return intersection, self_diff_n, n_diff_self, \
+               min_mines_num, max_mines_num, exact
 
     ###
     # POINTING MINES
     ###
 
-    def figure_out(self):
-        """
-        Runs one by one submethods for pointing mines and numbers around field
+    def mark_obvious_mines(self):
+        if self.m_left() == len(self.get_nbours('*')):
+            self._mark_potentials(self.get_nbours('*'), 'pm', "Obvious")
 
-        Submethods has to changes fields status to:
-        'pm' - potential mines
-        'pn' - potential number
+    def iterate_over_num_neighbours(self):
+        for n in self.get_nbours('n'):
+            log.debug(f"Iteration over {self}: neighbour: {n}")
 
-        :return: potential_mines, potential_numbers : set, set
-        """
-        potential_mines = set()
-        potential_numbers = set()
-        methods = (
-            self._check_if_state_equals_cov_neighbours,
-            self._check_whats_with_neighbours
-        )
-        for method in methods:
-            pot_mines, pot_numbers = method(potential_mines, potential_numbers)
-            potential_mines |= pot_mines
-            potential_numbers |= pot_numbers
+            intersection, self_diff_n, n_diff_self, minimum, maximum, exact = \
+                self._analyze_pair_with(n)
 
-        logg.info(f"{self} pointed {potential_mines} as mines")
-        logg.info(f"{self} pointed {potential_numbers} as numbers")
+            if n.get_nbours('*') == intersection:
+                log.debug(f"All {n} ('*') neighbours are in intersec subset")
+                log.debug(f"In intersection there are exactly "
+                          f"{exact} mines")
+                if self.m_left() == exact:
+                    self._mark_potentials(self_diff_n, 'pn', '1')
+                    if self.m_left() == len(intersection):
+                        self._mark_potentials(intersection, 'pm', '2')
+                if n.m_left() == exact:
+                    self._mark_potentials(n_diff_self, 'pn', '3')
+                    if n.m_left() == len(intersection):
+                        self._mark_potentials(intersection, 'pm', '4')
+                if self.m_left() - n.m_left() == 0:
+                    self._mark_potentials(self_diff_n, 'pn',
+                                          '2nd if: self.m_left() - '
+                                          'n.m_left() == 0')
+                if self.m_left() - n.m_left() > 0 and \
+                        self.m_left() == len(self_diff_n):
+                    self._mark_potentials(self_diff_n, 'pm',
+                                          '3rd if: self.m_left() - n.m_left() '
+                                          '> 0 and self.m_left() == '
+                                          'len(self_diff_n)')
+            elif (len(n.get_nbours('*')) > len(intersection)) and exact is not None:
+                log.debug(f"Neighbour {n} has more ('*') neighbours than len(intersection)")
+                log.debug(f"    There are min {minimum} and max "
+                          f"{maximum} mines in intersection")
 
-        return potential_mines, potential_numbers
+                if self.m_left() - exact == 0:
+                    self._mark_potentials(self_diff_n, 'pn',
+                                          "1st minimum = maximum, "
+                                          "self.m_left() - exact")
+                if self.m_left() - exact == len(self_diff_n):
+                    self._mark_potentials(self_diff_n, 'pm',
+                                          "2nd minimum = maximum, "
+                                          "self.m_left() - exact == "
+                                          "len(self_diff_n)")
+                if n.m_left() - exact == 0:
+                    self._mark_potentials(n_diff_self, 'pn',
+                                          "3rd minimum = maximum, "
+                                          "n.m_left() - exact == 0")
+                if n.m_left() - exact == len(n_diff_self):
+                    self._mark_potentials(n_diff_self, 'pm',
+                                          "4th minimum = maximum, "
+                                          "n.m_left() - exact == "
+                                          "len(n_diff_self)")
 
-    def _check_if_state_equals_cov_neighbours(self, pot_mines, pot_numbers):
-        covered_neighbours = self.get_nbours('*')
-        mine_neighbours = self.get_nbours('m')
-        if len(covered_neighbours) == int(self.state) - len(mine_neighbours):
-            for n in covered_neighbours:
-                pot_mines.add(n)
-                n.state = 'pm'
-        return pot_mines, pot_numbers
-
-    def _check_whats_with_neighbours(self, pot_mines, pot_numbers):
-        logg.debug(f"Checking whats with {self} neighbours")
-        for nn in self.get_nbours('n'):
-            intersection = self.get_nbours('*').intersection(
-                nn.get_nbours('*'))
-            difference = self.get_nbours('*').difference(
-                nn.get_nbours('*'))
-            if not intersection:
-                continue
-            logg.debug(f"Intersection with {nn}: {intersection}")
-            logg.debug(f"Difference with {nn}: {difference}")
-            mines_in_intersection = int(nn.state) - \
-                                    len(nn.get_nbours('m'))
-            other_mines_count = int(self.state) - mines_in_intersection - \
-                                len(self.get_nbours('m'))
-            if mines_in_intersection < 0:
-                logg.error(f"{self} x {nn}: mines in intersection "
-                
-                           f"{mines_in_intersection}")
-
-            logg.debug(f"other mines: {other_mines_count}")
-            if other_mines_count == 0 and intersection == nn.get_nbours('*'):
-                pot_numbers |= self.get_nbours('*').difference(
-                    nn.get_nbours('*'))
-                logg.debug(f"Potential numbers: {pot_numbers}")
-            elif other_mines_count == len(difference) and intersection == nn.get_nbours('*'):
-                pot_mines |= difference
-                for field in difference:
-                    field.state = 'pm'
-                logg.debug(f"Potenial mines: {pot_mines}")
-            elif (len(difference) + min(len(intersection), int(nn.state))) == int(self.state) - len(self.get_nbours('m')):
-                pot_mines |= difference
-                nn_difference = nn.get_nbours('*').difference(intersection)
-                pot_numbers |= nn_difference
-                for field in difference:
-                    field.state = 'pm'
-                logg.debug(f"Potenial mines (2nd): {pot_mines}, {len(difference)}+")
-                for field in nn_difference:
-                    field.state = 'pn'
-                logg.debug(f"Potenial numbers (3nd): {pot_numbers}, {len(nn_difference)}")
-        return pot_mines, pot_numbers
+    def _mark_potentials(self, fieldset, mark, info=None):
+        for field in fieldset:
+            if field.state in ('*', 'pn'):
+                log.info(f"Marking {field} as {mark.upper()} by\n"
+                         f"\t\t{self}.\n"
+                         f"\t\t{info}")
+                field.state = mark
