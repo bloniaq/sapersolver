@@ -275,6 +275,14 @@ class Field:
             self._mark_potentials(self.get_nbours('*'), 'pm', "Obvious")
 
     def iterate_over_num_neighbours(self):
+        # Currently it's not working properly, but it's worth to save the idea
+        # here.
+        #
+        # fields_to_cooper = set()
+        # for cov_neighbour in self.get_nbours('*'):
+        #     fields_to_cooper |= {field for field in cov_neighbour.get_nbours('n')}
+        # for n in self.get_nbours('n') | fields_to_cooper:
+
         for n in self.get_nbours('n'):
             log.debug(f"Iteration over {self}: neighbour: {n}")
 
