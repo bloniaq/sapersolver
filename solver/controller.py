@@ -29,6 +29,11 @@ class Controller:
         self.solve()
 
     def solve(self):
+        """Running in a loop, till it know what to do next. Loop ends, when
+        there's no sure decision to make.
+
+        :return: None
+        """
         log.info("Starting solving")
         i_know_what_to_do = True
         while i_know_what_to_do:
@@ -48,6 +53,12 @@ class Controller:
         log.warning("I don't know what to do")
 
     def _start_game(self):
+        """Starts the game by picking a field to click, if board is clear ->
+        all fields are covered. Otherwise it returns, and let program start
+        solving.
+
+        :return: None
+        """
         log.info("Starting game")
         for row in self.model.fields:
             for field in row:
@@ -61,6 +72,10 @@ class Controller:
         self.reader.update_board({starting_field})
 
     def _pick_start_field(self):
+        """Picks a random field in a board to strike.
+
+        :return: Field
+        """
         if not DEBUG_MODE:
             row = random.randrange(0, self.model.rows)
             col = random.randrange(0, self.model.columns)
