@@ -79,6 +79,10 @@ class Board:
         Marks fields recognized as potential mines and safe for uncover
         (potential numbers).
         :return:
+            set
+                fields marked as 'pm' - potential mines
+            set
+                fields marked as 'pn - potential numbers
         """
         number_fields = {field for field in self.fieldset if field.is_number()}
 
@@ -89,13 +93,6 @@ class Board:
         log.info("Iterating over numeric neighbours of numeric fields")
         for field in number_fields:
             field.iterate_over_num_neighbours()
-
-        # pot_mines = {field for field in self.fieldset if field.state == 'pm'}
-
-        pot_completes = {field for field in self.fieldset if field.is_complete()}
-        for field in pot_completes:
-            field.mark_potentials(field.get_nbours('*'), 'pn',
-                                  "potentially completed")
 
         log.info("Marking obvious mines ")
         for field in number_fields:
