@@ -627,3 +627,18 @@ class TestFunctional:
         pot_mines, pot_numbers = board.get_potentials()
 
         assert board.fields[1][0] in pot_numbers
+
+    def test_bug002(self, custom_board):
+        board_rows, board_columns = 3, 6
+        states = (
+            '*', '*', '*', '*', '*', '*',
+            '*', '5', '3', '3', '3', '*',
+            'm', 'm', 'm', '2', 'm', 'm'
+        )
+        #   '*', '*', '*', 'n', '*', '*',
+        #   '*', '5', '3', '3', '3', '*',
+        #   'm', 'm', 'm', '2', 'm', 'm'
+        board = custom_board(board_rows, board_columns, states)
+        pot_mines, pot_numbers = board.get_potentials()
+
+        assert board.fields[0][3] not in pot_numbers
