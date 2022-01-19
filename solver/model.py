@@ -97,7 +97,7 @@ class Board:
 
         pot_completes = {field for field in self.fieldset if field.is_complete()}
         for field in pot_completes:
-            field._mark_potentials(field.get_nbours('*'), 'pn')
+            field.mark_potentials(field.get_nbours('*'), 'pn')
 
         log.info("Marking obvious mines ")
         for field in number_fields:
@@ -142,7 +142,7 @@ class Field:
     # PRINTING METHODS
     ###
 
-    def _current_neighbourhood_string(self):
+    def current_neighbourhood_string(self):
         n_nw = self._pick_rel_neighbour(-1, -1)
         n_n = self._pick_rel_neighbour(-1, 0)
         n_ne = self._pick_rel_neighbour(-1, 1)
@@ -187,7 +187,7 @@ class Field:
         mines_left = int(self.state) - len(self.get_nbours('m', 'pm'))
         if mines_left < 0:
             raise NegativeMinesLeftCountError(self,
-                                              self._current_neighbourhood_string())
+                                              self.current_neighbourhood_string())
         return mines_left
 
     def is_number(self):
@@ -210,14 +210,14 @@ class Field:
         else:
             return False
 
-    def _intersection_with(self, other_field: 'Field') -> set:
+    def intersection_with(self, other_field: 'Field') -> set:
         self_covered = self.get_nbours('*')
         other_field_covered = other_field.get_nbours('*')
         intersection = self_covered.intersection(other_field_covered)
         log.debug(f"    Intersection: {len(intersection)} {intersection}")
         return intersection
 
-    def _difference_with(self, other_field: 'Field') -> set:
+    def difference_with(self, other_field: 'Field') -> set:
         self_covered = self.get_nbours('*')
         other_field_covered = other_field.get_nbours('*')
         difference = self_covered.difference(other_field_covered)
@@ -238,19 +238,19 @@ class Field:
             min_mines_num : int
                 a minimal number of mines in intersection
             max_mines_num : int
-                a maximym number of mines in intersection
+                a maximum number of mines in intersection
             exact : int
                 if minimum and maximum number of mines in intersection are
                 equal - it's exact number of mines in intersection; otherwise
                 it's None
         """
         log.debug(f"SELF NEIGHBOURHOOD:\n"
-                  f"{self._current_neighbourhood_string()}")
+                  f"{self.current_neighbourhood_string()}")
         log.debug(f"N NEIGHBOURHOOD:\n"
-                  f"{n._current_neighbourhood_string()}")
-        intersection = self._intersection_with(n)
-        self_diff_n = self._difference_with(n)
-        n_diff_self = n._difference_with(self)
+                  f"{n.current_neighbourhood_string()}")
+        intersection = self.intersection_with(n)
+        self_diff_n = self.difference_with(n)
+        n_diff_self = n.difference_with(self)
 
         min_mines_num = max(
             self.m_left() - len(self_diff_n),
@@ -267,7 +267,7 @@ class Field:
             exact = min_mines_num
 
         return intersection, self_diff_n, n_diff_self, \
-               min_mines_num, max_mines_num, exact
+            min_mines_num, max_mines_num, exact
 
     ###
     # POINTING MINES
@@ -275,7 +275,7 @@ class Field:
 
     def mark_obvious_mines(self):
         if self.m_left() == len(self.get_nbours('*')):
-            self._mark_potentials(self.get_nbours('*'), 'pm', "Obvious")
+            self.mark_potentials(self.get_nbours('*'), 'pm', "Obvious")
 
     def iterate_over_num_neighbours(self):
         fields_to_cooper = set()
@@ -287,8 +287,8 @@ class Field:
             log.debug(f"Iteration over {self}: neighbour: {n}")
 
             if n.is_complete():
-                self._mark_potentials(n.get_nbours('*'), 'pn',
-                                      f"Neighbour {n} complete")
+                self.mark_potentials(n.get_nbours('*'), 'pn',
+                                     f"Neighbour {n} complete")
 
             intersection, self_diff_n, n_diff_self, minimum, maximum, exact = \
                 self._analyze_pair_with(n)
@@ -302,23 +302,23 @@ class Field:
                 log.debug(f"In intersection there are exactly "
                           f"{exact} mines")
                 if self.m_left() == exact:
-                    self._mark_potentials(self_diff_n, 'pn', '1')
+                    self.mark_potentials(self_diff_n, 'pn', '1')
                     if self.m_left() == len(intersection):
-                        self._mark_potentials(intersection, 'pm', '2')
+                        self.mark_potentials(intersection, 'pm', '2')
                 if n.m_left() == exact:
-                    self._mark_potentials(n_diff_self, 'pn', '3')
+                    self.mark_potentials(n_diff_self, 'pn', '3')
                     if n.m_left() == len(intersection):
-                        self._mark_potentials(intersection, 'pm', '4')
+                        self.mark_potentials(intersection, 'pm', '4')
                 if self.m_left() - n.m_left() == 0:
-                    self._mark_potentials(self_diff_n, 'pn',
-                                          '2nd if: self.m_left() - '
-                                          'n.m_left() == 0')
+                    self.mark_potentials(self_diff_n, 'pn',
+                                         '2nd if: self.m_left() - '
+                                         'n.m_left() == 0')
                 if self.m_left() - n.m_left() > 0 and \
                         self.m_left() - n.m_left() == len(self_diff_n):
-                    self._mark_potentials(self_diff_n, 'pm',
-                                          '3rd if: self.m_left() - n.m_left() '
-                                          '> 0 and self.m_left() == '
-                                          'len(self_diff_n)')
+                    self.mark_potentials(self_diff_n, 'pm',
+                                         '3rd if: self.m_left() - n.m_left() '
+                                         '> 0 and self.m_left() == '
+                                         'len(self_diff_n)')
             elif (len(n.get_nbours('*')) > len(intersection)) and \
                     exact is not None and \
                     len(intersection) > 0:
@@ -327,25 +327,25 @@ class Field:
                           f"{maximum} mines in intersection")
 
                 if self.m_left() - exact == 0:
-                    self._mark_potentials(self_diff_n, 'pn',
-                                          "1st minimum = maximum, "
-                                          "self.m_left() - exact")
+                    self.mark_potentials(self_diff_n, 'pn',
+                                         "1st minimum = maximum, "
+                                         "self.m_left() - exact")
                 if self.m_left() - exact == len(self_diff_n):
-                    self._mark_potentials(self_diff_n, 'pm',
-                                          "2nd minimum = maximum, "
-                                          "self.m_left() - exact == "
-                                          "len(self_diff_n)")
+                    self.mark_potentials(self_diff_n, 'pm',
+                                         "2nd minimum = maximum, "
+                                         "self.m_left() - exact == "
+                                         "len(self_diff_n)")
                 if n.m_left() - exact == 0:
-                    self._mark_potentials(n_diff_self, 'pn',
-                                          "3rd minimum = maximum, "
-                                          "n.m_left() - exact == 0")
+                    self.mark_potentials(n_diff_self, 'pn',
+                                         "3rd minimum = maximum, "
+                                         "n.m_left() - exact == 0")
                 if n.m_left() - exact == len(n_diff_self):
-                    self._mark_potentials(n_diff_self, 'pm',
-                                          "4th minimum = maximum, "
-                                          "n.m_left() - exact == "
-                                          "len(n_diff_self)")
+                    self.mark_potentials(n_diff_self, 'pm',
+                                         "4th minimum = maximum, "
+                                         "n.m_left() - exact == "
+                                         "len(n_diff_self)")
 
-    def _mark_potentials(self, fieldset, mark, info=None):
+    def mark_potentials(self, fieldset, mark, info=None):
         for field in fieldset:
             if field.state in ('*', 'pn'):
                 log.info(f"Marking {field} as {mark.upper()} by\n"
