@@ -7,7 +7,7 @@ pyautogui.FAILSAFE = True
 # If True program skip recognition of fields at open, assuming all are covered
 CLEAR_BOARD = True
 
-
+### Logging configuration
 logg = logging.getLogger('solver')
 logg.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
