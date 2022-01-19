@@ -275,19 +275,18 @@ class Field:
             self._mark_potentials(self.get_nbours('*'), 'pm', "Obvious")
 
     def iterate_over_num_neighbours(self):
-        # Currently it's not working properly, but it's worth to save the idea
-        # here.
-        #
-        # fields_to_cooper = set()
-        # for cov_neighbour in self.get_nbours('*'):
-        #     fields_to_cooper |= {field for field in cov_neighbour.get_nbours('n')}
-        # for n in self.get_nbours('n') | fields_to_cooper:
+        fields_to_cooper = set()
+        for cov_neighbour in self.get_nbours('*'):
+            fields_to_cooper |= {field for field in cov_neighbour.get_nbours('n')}
+        for n in self.get_nbours('n') | fields_to_cooper:
 
-        for n in self.get_nbours('n'):
             log.debug(f"Iteration over {self}: neighbour: {n}")
 
             intersection, self_diff_n, n_diff_self, minimum, maximum, exact = \
                 self._analyze_pair_with(n)
+
+            if not intersection:
+                continue
 
             if n.get_nbours('*') == intersection:
                 log.debug(f"All {n} ('*') neighbours are in intersec subset")
@@ -306,12 +305,14 @@ class Field:
                                           '2nd if: self.m_left() - '
                                           'n.m_left() == 0')
                 if self.m_left() - n.m_left() > 0 and \
-                        self.m_left() == len(self_diff_n):
+                        self.m_left() - n.m_left() == len(self_diff_n):
                     self._mark_potentials(self_diff_n, 'pm',
                                           '3rd if: self.m_left() - n.m_left() '
                                           '> 0 and self.m_left() == '
                                           'len(self_diff_n)')
-            elif (len(n.get_nbours('*')) > len(intersection)) and exact is not None:
+            elif (len(n.get_nbours('*')) > len(intersection)) and \
+                    exact is not None and \
+                    len(intersection) > 0:
                 log.debug(f"Neighbour {n} has more ('*') neighbours than len(intersection)")
                 log.debug(f"    There are min {minimum} and max "
                           f"{maximum} mines in intersection")
