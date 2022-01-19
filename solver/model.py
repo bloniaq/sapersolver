@@ -95,12 +95,17 @@ class Board:
         for field in number_fields:
             field.iterate_over_num_neighbours()
 
-        pot_mines = {field for field in self.fieldset if field.state == 'pm'}
+        # pot_mines = {field for field in self.fieldset if field.state == 'pm'}
 
         pot_completes = {field for field in self.fieldset if field.is_complete()}
         for field in pot_completes:
             field._mark_potentials(field.get_nbours('*'), 'pn')
 
+        log.info("Marking obvious mines ")
+        for field in number_fields:
+            field.mark_obvious_mines()
+
+        pot_mines = {field for field in self.fieldset if field.state == 'pm'}
         pot_numbers = {field for field in self.fieldset if field.state == 'pn'}
 
         log.debug(self.get_board_string())
@@ -278,9 +283,14 @@ class Field:
         fields_to_cooper = set()
         for cov_neighbour in self.get_nbours('*'):
             fields_to_cooper |= {field for field in cov_neighbour.get_nbours('n')}
+
         for n in self.get_nbours('n') | fields_to_cooper:
 
             log.debug(f"Iteration over {self}: neighbour: {n}")
+
+            if n.is_complete():
+                self._mark_potentials(n.get_nbours('*'), 'pn',
+                                      f"Neighbour {n} complete")
 
             intersection, self_diff_n, n_diff_self, minimum, maximum, exact = \
                 self._analyze_pair_with(n)
@@ -289,6 +299,7 @@ class Field:
                 continue
 
             if n.get_nbours('*') == intersection:
+
                 log.debug(f"All {n} ('*') neighbours are in intersec subset")
                 log.debug(f"In intersection there are exactly "
                           f"{exact} mines")
