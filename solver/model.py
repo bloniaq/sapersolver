@@ -3,9 +3,7 @@ from solver.exceptions import *
 
 log = logging.getLogger('solver.c.model')
 
-
-# TODO: Change logging level before merge to dev
-# log.setLevel(logging.warning)
+log.setLevel(logging.INFO)
 
 
 class Board:
