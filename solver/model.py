@@ -3,7 +3,7 @@ from solver.exceptions import *
 
 log = logging.getLogger('solver.c.model')
 
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 class Board:
@@ -41,11 +41,11 @@ class Board:
             self.fields.append(row_list)
 
     def get_board_string(self):
-        """
-        Create string to show current board state in command line
+        """Create string to show current board state in command line
+
         :return:
-            board
-                a prepared string
+            string
+                Ready to be printed
         """
         board = '\n'
         for row in self.fields:
@@ -56,17 +56,25 @@ class Board:
         return board
 
     def _bind_neighbours(self):
+        """Make binds to neighbour fields, for all fields in self.fields
+
+        :return:
+            None
+        """
         for row in self.fields:
             for field in row:
                 x = field.col
                 y = field.row
                 neighbours = []
+                # This is the way to avoid adding neighbours with negative
+                # indexes
                 for r in range(y - 1 if y > 0 else y, y + 2 if y < len(self.fields) - 1 else y + 1):
                     for c in range(x - 1 if x > 0 else x, x + 2 if x < len(self.fields[0]) - 1 else x + 1):
                         neighbours.append(self.fields[r][c])
                 field.neighbours = set(neighbours)
                 field.neighbours.discard(self.fields[y][x])
 
+    # TODO: Delete this method, it's not used anymore
     def get_complete_fields_w_cov_neighbours(self):
         fields_to_click = set()
         for row in self.fields:
@@ -97,7 +105,8 @@ class Board:
 
         pot_completes = {field for field in self.fieldset if field.is_complete()}
         for field in pot_completes:
-            field.mark_potentials(field.get_nbours('*'), 'pn')
+            field.mark_potentials(field.get_nbours('*'), 'pn',
+                                  "potentially completed")
 
         log.info("Marking obvious mines ")
         for field in number_fields:
@@ -347,8 +356,14 @@ class Field:
 
     def mark_potentials(self, fieldset, mark, info=None):
         for field in fieldset:
-            if field.state in ('*', 'pn'):
+            if field.state in ('*'):
                 log.info(f"Marking {field} as {mark.upper()} by\n"
                          f"\t\t{self}.\n"
                          f"\t\t{info}")
                 field.state = mark
+                if mark == 'pm':
+                    for num_neighbour in field.get_nbours('n'):
+                        if num_neighbour.is_complete():
+                            self.mark_potentials(num_neighbour.get_nbours('*'),
+                                                 'pn',
+                                                 f"{num_neighbour} complete")

@@ -254,74 +254,81 @@ class TestField:
     def test_mark_potentials(self, custom_board):
         board_rows, board_columns = 4, 4
         states = (
-            '*', '*', '1', '_',
-            '*', '*', '2', '1',
-            '*', '*', '*', '2',
-            '*', '*', '*', '1'
+            '*', '1', '2', '*',
+            '2', '2', '2', '*',
+            '*', '3', '2', '1',
+            '*', '*', '1', '_'
         )
+        #   'M', '1', '2', 'M',
+        #   '2', '1', '2', 'M',
+        #   'M', '3', '2', '1',
+        #   'M', 'M', '1', '_'
         board = custom_board(board_rows, board_columns, states)
         fieldset = set()
         for row in board.fields:
             for field in row:
                 fieldset.add(field)
-        board.fields[0][0].mark_potentials(fieldset, 'pm')
+        board.fields[0][0].mark_potentials(fieldset, 'pm',
+                                           "test_mark_potentials")
         assert board.fields[0][0].state == 'pm'
-        assert board.fields[0][1].state == 'pm'
-        assert board.fields[0][2].state == '1'
-        assert board.fields[0][3].state == '_'
-        assert board.fields[1][0].state == 'pm'
-        assert board.fields[1][1].state == 'pm'
+        assert board.fields[0][1].state == '1'
+        assert board.fields[0][2].state == '2'
+        assert board.fields[0][3].state == 'pm'
+        assert board.fields[1][0].state == '2'
+        assert board.fields[1][1].state == '2'
         assert board.fields[1][2].state == '2'
-        assert board.fields[1][3].state == '1'
+        assert board.fields[1][3].state == 'pm'
         assert board.fields[2][0].state == 'pm'
-        assert board.fields[2][1].state == 'pm'
-        assert board.fields[2][2].state == 'pm'
-        assert board.fields[2][3].state == '2'
+        assert board.fields[2][1].state == '3'
+        assert board.fields[2][2].state == '2'
+        assert board.fields[2][3].state == '1'
         assert board.fields[3][0].state == 'pm'
         assert board.fields[3][1].state == 'pm'
-        assert board.fields[3][2].state == 'pm'
-        assert board.fields[3][3].state == '1'
+        assert board.fields[3][2].state == '1'
+        assert board.fields[3][3].state == '_'
 
-        board.fields[1][1].mark_potentials(fieldset, 'pn')
+        board.fields[1][1].mark_potentials(fieldset, 'pn'
+                                           "test_mark_potentials")
         assert board.fields[0][0].state == 'pm'
-        assert board.fields[0][1].state == 'pm'
-        assert board.fields[0][2].state == '1'
-        assert board.fields[0][3].state == '_'
-        assert board.fields[1][0].state == 'pm'
-        assert board.fields[1][1].state == 'pm'
+        assert board.fields[0][1].state == '1'
+        assert board.fields[0][2].state == '2'
+        assert board.fields[0][3].state == 'pm'
+        assert board.fields[1][0].state == '2'
+        assert board.fields[1][1].state == '2'
         assert board.fields[1][2].state == '2'
-        assert board.fields[1][3].state == '1'
+        assert board.fields[1][3].state == 'pm'
         assert board.fields[2][0].state == 'pm'
-        assert board.fields[2][1].state == 'pm'
-        assert board.fields[2][2].state == 'pm'
-        assert board.fields[2][3].state == '2'
+        assert board.fields[2][1].state == '3'
+        assert board.fields[2][2].state == '2'
+        assert board.fields[2][3].state == '1'
         assert board.fields[3][0].state == 'pm'
         assert board.fields[3][1].state == 'pm'
-        assert board.fields[3][2].state == 'pm'
-        assert board.fields[3][3].state == '1'
+        assert board.fields[3][2].state == '1'
+        assert board.fields[3][3].state == '_'
 
         board = custom_board(board_rows, board_columns, states)
         fieldset = set()
         for row in board.fields:
             for field in row:
                 fieldset.add(field)
-        board.fields[2][2].mark_potentials(fieldset, 'pn')
+        board.fields[2][2].mark_potentials(fieldset, 'pn',
+                                           "test_mark_potentials")
         assert board.fields[0][0].state == 'pn'
-        assert board.fields[0][1].state == 'pn'
-        assert board.fields[0][2].state == '1'
-        assert board.fields[0][3].state == '_'
-        assert board.fields[1][0].state == 'pn'
-        assert board.fields[1][1].state == 'pn'
+        assert board.fields[0][1].state == '1'
+        assert board.fields[0][2].state == '2'
+        assert board.fields[0][3].state == 'pn'
+        assert board.fields[1][0].state == '2'
+        assert board.fields[1][1].state == '2'
         assert board.fields[1][2].state == '2'
-        assert board.fields[1][3].state == '1'
+        assert board.fields[1][3].state == 'pn'
         assert board.fields[2][0].state == 'pn'
-        assert board.fields[2][1].state == 'pn'
-        assert board.fields[2][2].state == 'pn'
-        assert board.fields[2][3].state == '2'
+        assert board.fields[2][1].state == '3'
+        assert board.fields[2][2].state == '2'
+        assert board.fields[2][3].state == '1'
         assert board.fields[3][0].state == 'pn'
         assert board.fields[3][1].state == 'pn'
-        assert board.fields[3][2].state == 'pn'
-        assert board.fields[3][3].state == '1'
+        assert board.fields[3][2].state == '1'
+        assert board.fields[3][3].state == '_'
 
     def test_mines_left(self, custom_board):
         custom_rows, custom_columns = 3, 3
