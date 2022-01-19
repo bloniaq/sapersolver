@@ -3,7 +3,7 @@ from solver.exceptions import *
 
 log = logging.getLogger('solver.c.model')
 
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 class Board:
