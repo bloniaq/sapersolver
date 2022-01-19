@@ -41,7 +41,7 @@ class Board:
             self.fields.append(row_list)
 
     def get_board_string(self):
-        """Create string to show current board state in command line
+        """Create string to show current board state in command line.
 
         :return:
             string
@@ -56,7 +56,7 @@ class Board:
         return board
 
     def _bind_neighbours(self):
-        """Make binds to neighbour fields, for all fields in self.fields
+        """Make binds to neighbour fields, for all fields in self.fields.
 
         :return:
             None
@@ -138,6 +138,11 @@ class Field:
     ###
 
     def current_neighbourhood_string(self):
+        """Produces string ready to print, with field's neighbourhood.
+
+        :return:
+            string
+        """
         n_nw = self._pick_rel_neighbour(-1, -1)
         n_n = self._pick_rel_neighbour(-1, 0)
         n_ne = self._pick_rel_neighbour(-1, 1)
@@ -152,6 +157,15 @@ class Field:
         return board
 
     def _pick_rel_neighbour(self, row_offset, col_offset):
+        """Returns neighbour localized by the row and col offset.
+
+        In case self is border field, it produces fake-neighbour with 'X' state.
+
+        :param row_offset: int
+        :param col_offset: int
+        :return:
+            Field
+        """
         for n in self.neighbours:
             if n.row == self.row + row_offset and \
                     n.col == self.col + col_offset:
@@ -164,21 +178,34 @@ class Field:
     ###
 
     def get_nbours(self, *args):
+        """Returns set of neighbours filtered by passed parameter.
+
+        :param args:    all regular states, plus additionally 'n' as number,
+                        'pn' as potential number, 'pm' as potential mine
+        :return: set
+        """
         neighbours = set()
         args = list(args)
         if not args:
+            # pass all neighbours
             args = ['*', '_', 'm', 'n']
         if 'n' in args:
+            # 'n' isn't really a state
             args.remove('n')
             for n in range(ord('1'), ord('8')):
                 args.append(chr(n))
         if 'm' in args:
+            # There is assumption, that we infallibly mark mines
             args.append('pm')
         for arg in args:
             neighbours |= {nbour for nbour in self.neighbours if nbour.state == arg}
         return neighbours
 
     def m_left(self):
+        """Returns number of mines left to mark in self neighbourhood.
+
+        :return: int
+        """
         mines_left = int(self.state) - len(self.get_nbours('m', 'pm'))
         if mines_left < 0:
             raise NegativeMinesLeftCountError(self,
@@ -186,12 +213,16 @@ class Field:
         return mines_left
 
     def is_number(self):
+        """Checks if self is number."""
         if '0' < self.state < '9':
             return True
         else:
             return False
 
     def is_complete(self):
+        """Checks if self is complete - which means all of expected mines in
+        neighbourhood are already marked as 'm' or 'pm'.
+        """
         if not self.is_number():
             return False
         if self.state == 'pn':
@@ -206,6 +237,12 @@ class Field:
             return False
 
     def intersection_with(self, other_field: 'Field') -> set:
+        """Returns set of common covered ('*') neighbours for self and
+        other_field.
+
+        :param other_field: Field
+        :return: set
+        """
         self_covered = self.get_nbours('*')
         other_field_covered = other_field.get_nbours('*')
         intersection = self_covered.intersection(other_field_covered)
@@ -213,6 +250,12 @@ class Field:
         return intersection
 
     def difference_with(self, other_field: 'Field') -> set:
+        """Returns set of covered ('*') neighbours of self, which at the same
+        time aren't neighbours of other field.
+
+        :param other_field: Field
+        :return: set
+        """
         self_covered = self.get_nbours('*')
         other_field_covered = other_field.get_nbours('*')
         difference = self_covered.difference(other_field_covered)
@@ -269,10 +312,21 @@ class Field:
     ###
 
     def mark_obvious_mines(self):
+        """Marks mines as 'pm' when number of covered neighbours ('*') equals
+        self mines left to mark.
+
+        :return: None
+        """
         if self.m_left() == len(self.get_nbours('*')):
             self.mark_potentials(self.get_nbours('*'), 'pm', "Obvious")
 
     def iterate_over_num_neighbours(self):
+        """Marks appropriately fields as 'pm' or 'pn', based on specific
+        conditions. Iterates over numeric neighbours and analyzes the
+        intersections of each pair.
+
+        :return: None
+        """
         fields_to_cooper = set()
         for cov_neighbour in self.get_nbours('*'):
             fields_to_cooper |= {field for field in cov_neighbour.get_nbours('n')}
@@ -281,6 +335,7 @@ class Field:
 
             log.debug(f"Iteration over {self}: neighbour: {n}")
 
+            # Possibily reduntant, as mark_potentials now checks it
             if n.is_complete():
                 self.mark_potentials(n.get_nbours('*'), 'pn',
                                      f"Neighbour {n} complete")
@@ -341,6 +396,16 @@ class Field:
                                          "len(n_diff_self)")
 
     def mark_potentials(self, fieldset, mark, info=None):
+        """Changes states of elements of fieldset to passed in mark parameter.
+
+        Also checks if marking as 'pm' makes some numeric neighbour complete,
+        and if so, it marks covered neighbours of completed field as 'pn'
+
+        :param fieldset: set
+        :param mark: string
+        :param info: string
+        :return: None
+        """
         for field in fieldset:
             if field.state in ('*'):
                 log.info(f"Marking {field} as {mark.upper()} by\n"
