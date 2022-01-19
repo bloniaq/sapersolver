@@ -43,9 +43,7 @@ class Controller:
             log.debug("Going to update Board")
             changes = self.reader.update_board(fields_to_uncover)
 
-            # TODO: Is second condition really needed?
-            #       bug 001 occured without second condition - was it matter?
-            if not changes and not self.model.get_complete_fields_w_cov_neighbours():
+            if not changes:
                 i_know_what_to_do = False
             print(self.model.get_board_string())
         log.warning("I don't know what to do")
