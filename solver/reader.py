@@ -3,7 +3,7 @@ import logging
 
 
 log = logging.getLogger('solver.c.reader')
-log.setLevel(logging.WARNING)
+log.setLevel(logging.INFO)
 
 MOVE_DURATION = .1
 
