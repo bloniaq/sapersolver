@@ -13,15 +13,14 @@ DEBUG_MODE = False
 class Controller:
 
     def __init__(self, board_clear=False):
-        self.reader = Reader()
-        if self.reader.region is not None:
+        found_window = False
+        while not found_window:
+            self.reader = Reader()
+            found_window = self.reader.region
 
-            self.model = Board(self.reader.left, self.reader.top)
-            log.info('app initialized successfully')
-            log.debug(f"board top left corner: X:{self.reader.left} Y:{self.reader.top}")
-        else:
-            log.error('Board not found')
-            return
+        self.model = Board(self.reader.left, self.reader.top)
+        log.info('app initialized successfully')
+        log.debug(f"board top left corner: X:{self.reader.left} Y:{self.reader.top}")
 
         if not board_clear and not DEBUG_MODE:
             self.reader.read_whole_board(self.model.fields)
