@@ -610,3 +610,20 @@ class TestFunctional:
         assert board.fields[4][0] in pot_numbers
         assert board.fields[5][0] in pot_numbers
         assert board.fields[5][1] in pot_mines
+
+    def test_nbour_of_nbour(self, custom_board):
+        board_rows, board_columns = 4, 3
+        states = (
+            'm', 'm', '2',
+            '*', '5', 'm',
+            '*', '*', 'm',
+            '1', '3', 'm'
+        )
+        #   'm', 'm', '2',
+        #   'n', '5', 'm',
+        #   '*', '*', 'm',
+        #   '1', '3', 'm'
+        board = custom_board(board_rows, board_columns, states)
+        pot_mines, pot_numbers = board.get_potentials()
+
+        assert board.fields[1][0] in pot_numbers
