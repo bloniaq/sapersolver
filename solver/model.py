@@ -74,17 +74,6 @@ class Board:
                 field.neighbours = set(neighbours)
                 field.neighbours.discard(self.fields[y][x])
 
-    # TODO: Delete this method, it's not used anymore
-    def get_complete_fields_w_cov_neighbours(self):
-        fields_to_click = set()
-        for row in self.fields:
-            for field in row:
-                if field.is_complete() and field.get_nbours('*'):
-                    field.state = 'pn'
-                    fields_to_click.add(field)
-        log.info(f"complete_fields_w_cov_neighbours: {fields_to_click}")
-        return fields_to_click
-
     def get_potentials(self):
         """
         Marks fields recognized as potential mines and safe for uncover
